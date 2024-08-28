@@ -1,0 +1,39 @@
+import org.apache.commons.io.IOUtils;
+import org.springframework.web.multipart.MultipartFile;
+import java.io.*;
+import java.nio.file.Files;
+import java.nio.file.Paths;
+
+private File multipartToFile(MultipartFile multipart, String fileName) throws IOException {
+    File convFile = new File(ReportsFilePath.path("Y","PRD"), FilenameUtils.getName(fileName));
+    
+    try (InputStream is = multipart.getInputStream();
+         OutputStream os = Files.newOutputStream(Paths.get(convFile.getPath()))) {
+        
+        // Read the input stream in chunks and write to the output stream
+        byte[] buffer = new byte[1024];
+        int bytesRead;
+        while ((bytesRead = is.read(buffer)) != -1) {
+            os.write(buffer, 0, bytesRead);
+        }
+        os.flush();
+        
+        // Verify file size
+        long fileSize = Files.size(Paths.get(convFile.getPath()));
+        if (fileSize == 0) {
+            throw new IOException("File was created but is empty");
+        }
+        
+        logger.info("File successfully created. Size: " + fileSize + " bytes");
+    } catch (IOException e) {
+        logger.error("Error in file conversion: " + e.getMessage(), e);
+        throw e;
+    }
+    
+    return convFile;
+}
+
+// Helper method to read file contents for verification
+private String readFileContents(File file) throws IOException {
+    return new String(Files.readAllBytes(file.toPath()));
+}
