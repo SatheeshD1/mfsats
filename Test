@@ -1,0 +1,33 @@
+WITH numbered_rows AS (
+  SELECT 
+    t2.uetr,
+    t2.subpmttp,
+    ROW_NUMBER() OVER (PARTITION BY t2.uetr ORDER BY t2.subpmttp) AS row_num
+  FROM table2 t2
+),
+max_columns AS (
+  SELECT MAX(row_num) AS max_count
+  FROM numbered_rows
+),
+column_definitions AS (
+  SELECT 
+    string_agg(
+      format('MAX(CASE WHEN row_num = %s THEN uetr END) AS uetr%s, 
+              MAX(CASE WHEN row_num = %s THEN subpmttp END) AS subpmttp%s', 
+             i, i, i, i),
+      ', '
+    ) AS columns_sql
+  FROM generate_series(1, (SELECT max_count FROM max_columns)) i
+)
+SELECT format(
+  'SELECT t1.*, %s
+   FROM table1 t1
+   LEFT JOIN (
+     SELECT uetr, %s
+     FROM numbered_rows
+     GROUP BY uetr
+   ) t2 ON t1.uetr = t2.uetr',
+  columns_sql,
+  columns_sql
+) AS dynamic_query
+FROM column_definitions;
