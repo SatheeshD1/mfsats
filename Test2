@@ -1,0 +1,37 @@
+WITH numbered_rows AS (
+  SELECT 
+    t2.uetr,
+    t2.subpmttp,
+    ROW_NUMBER() OVER (PARTITION BY t2.uetr ORDER BY t2.subpmttp) AS row_num
+  FROM table2 t2
+)
+SELECT 
+  t1.*,
+  MAX(CASE WHEN nr.row_num = 1 THEN nr.uetr END) AS uetr1,
+  MAX(CASE WHEN nr.row_num = 1 THEN nr.subpmttp END) AS subpmttp1,
+  MAX(CASE WHEN nr.row_num = 2 THEN nr.uetr END) AS uetr2,
+  MAX(CASE WHEN nr.row_num = 2 THEN nr.subpmttp END) AS subpmttp2,
+  MAX(CASE WHEN nr.row_num = 3 THEN nr.uetr END) AS uetr3,
+  MAX(CASE WHEN nr.row_num = 3 THEN nr.subpmttp END) AS subpmttp3,
+  MAX(CASE WHEN nr.row_num = 4 THEN nr.uetr END) AS uetr4,
+  MAX(CASE WHEN nr.row_num = 4 THEN nr.subpmttp END) AS subpmttp4,
+  MAX(CASE WHEN nr.row_num = 5 THEN nr.uetr END) AS uetr5,
+  MAX(CASE WHEN nr.row_num = 5 THEN nr.subpmttp END) AS subpmttp5,
+  MAX(CASE WHEN nr.row_num = 6 THEN nr.uetr END) AS uetr6,
+  MAX(CASE WHEN nr.row_num = 6 THEN nr.subpmttp END) AS subpmttp6,
+  MAX(CASE WHEN nr.row_num = 7 THEN nr.uetr END) AS uetr7,
+  MAX(CASE WHEN nr.row_num = 7 THEN nr.subpmttp END) AS subpmttp7,
+  MAX(CASE WHEN nr.row_num = 8 THEN nr.uetr END) AS uetr8,
+  MAX(CASE WHEN nr.row_num = 8 THEN nr.subpmttp END) AS subpmttp8,
+  MAX(CASE WHEN nr.row_num = 9 THEN nr.uetr END) AS uetr9,
+  MAX(CASE WHEN nr.row_num = 9 THEN nr.subpmttp END) AS subpmttp9,
+  MAX(CASE WHEN nr.row_num = 10 THEN nr.uetr END) AS uetr10,
+  MAX(CASE WHEN nr.row_num = 10 THEN nr.subpmttp END) AS subpmttp10
+FROM 
+  table1 t1
+LEFT JOIN 
+  numbered_rows nr ON t1.uetr = nr.uetr
+GROUP BY 
+  t1.uetr, t1.pmttp
+ORDER BY 
+  t1.uetr;
