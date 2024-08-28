@@ -1,0 +1,23 @@
+WITH numbered_subpmttp AS (
+    SELECT
+        Uetr,
+        Subpmttp,
+        ROW_NUMBER() OVER (PARTITION BY Uetr ORDER BY Subpmttp) AS row_num
+    FROM table2
+)
+SELECT 
+    t1.Uetr,
+    t1.Pmttp,
+    MAX(CASE WHEN ns.row_num = 1 THEN ns.Uetr ELSE NULL END) AS Uetr1,
+    MAX(CASE WHEN ns.row_num = 1 THEN ns.Subpmttp ELSE NULL END) AS Subpmttp1,
+    MAX(CASE WHEN ns.row_num = 2 THEN ns.Uetr ELSE NULL END) AS Uetr2,
+    MAX(CASE WHEN ns.row_num = 2 THEN ns.Subpmttp ELSE NULL END) AS Subpmttp2,
+    MAX(CASE WHEN ns.row_num = 3 THEN ns.Uetr ELSE NULL END) AS Uetr3,
+    MAX(CASE WHEN ns.row_num = 3 THEN ns.Subpmttp ELSE NULL END) AS Subpmttp3
+    -- Add more cases as needed for additional columns
+FROM 
+    table1 t1
+LEFT JOIN 
+    numbered_subpmttp ns ON t1.Uetr = ns.Uetr
+GROUP BY 
+    t1.Uetr, t1.Pmttp;
