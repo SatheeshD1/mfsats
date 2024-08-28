@@ -1,0 +1,13 @@
+private File multipartToFile(MultipartFile multipart, String fileName) throws IllegalStateException, IOException {
+    File convFile = new File(ReportsFilePath.path("Y","PRD"), FilenameUtils.getName(fileName));
+    try {
+        multipart.transferTo(convFile);
+        if (convFile.length() == 0) {
+            throw new IOException("File was created but is empty");
+        }
+    } catch (IOException e) {
+        logger.error("Failed to transfer multipart file: " + e.getMessage());
+        throw e;
+    }
+    return convFile;
+}
