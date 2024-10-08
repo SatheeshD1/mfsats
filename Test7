@@ -1,0 +1,51 @@
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
+
+public class ScheduledReportValidator {
+
+    private static final int MAX_SLOT_COUNT = 5;
+    private static final DateTimeFormatter DATE_TIME_FORMATTER = DateTimeFormatter.ofPattern("dd/MM/yy HH:mm:ss");
+
+    public boolean validateSchedule(List<Map<String, String>> existingSchedules, String startDateTime, String endDateTime, String recurrenceOn) {
+        LocalDateTime newStartDate = LocalDateTime.parse(startDateTime, DATE_TIME_FORMATTER);
+        LocalDateTime newEndDate = LocalDateTime.parse(endDateTime, DATE_TIME_FORMATTER);
+
+        List<ScheduleInfo> conflictingSchedules = existingSchedules.stream()
+                .map(this::mapToScheduleInfo)
+                .filter(schedule -> isConflicting(schedule, newStartDate, newEndDate, recurrenceOn))
+                .collect(Collectors.toList());
+
+        return conflictingSchedules.size() < MAX_SLOT_COUNT;
+    }
+
+    private ScheduleInfo mapToScheduleInfo(Map<String, String> scheduleMap) {
+        return new ScheduleInfo(
+                LocalDateTime.parse(scheduleMap.get("Started On Date Time"), DATE_TIME_FORMATTER),
+                LocalDateTime.parse(scheduleMap.get("Scheduled End Time"), DATE_TIME_FORMATTER),
+                scheduleMap.get("Recurrence On")
+        );
+    }
+
+    private boolean isConflicting(ScheduleInfo existingSchedule, LocalDateTime newStartDate, LocalDateTime newEndDate, String newRecurrenceOn) {
+        return existingSchedule.startDateTime.isBefore(newEndDate) &&
+               existingSchedule.endDateTime.isAfter(newStartDate) &&
+               existingSchedule.recurrenceOn.equals(newRecurrenceOn);
+    }
+
+    private static class ScheduleInfo {
+        LocalDateTime startDateTime;
+        LocalDateTime endDateTime;
+        String recurrenceOn;
+
+        ScheduleInfo(LocalDateTime startDateTime, LocalDateTime endDateTime, String recurrenceOn) {
+            this.startDateTime = startDateTime;
+            this.endDateTime = endDateTime;
+            this.recurrenceOn = recurrenceOn;
+        }
+    }
+}
+
+
