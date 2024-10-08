@@ -1,3 +1,31 @@
+@RestController
+public class ScheduleController {
+
+    private final ScheduledReportValidator validator = new ScheduledReportValidator();
+
+    @PostMapping("/schedule")
+    public ResponseEntity<?> scheduleReport(@RequestBody ScheduleRequest request) {
+        // Assume you have a method to get existing schedules
+        List<Map<String, String>> existingSchedules = getExistingSchedules();
+
+        boolean isValid = validator.validateSchedule(
+            existingSchedules,
+            request.getStartDateTime(),
+            request.getEndDateTime(),
+            request.getRecurrenceOn()
+        );
+
+        if (isValid) {
+            // Proceed with scheduling
+            return ResponseEntity.ok().build();
+        } else {
+            return ResponseEntity.badRequest().body("Maximum slot count reached for this time slot");
+        }
+    }
+}
+
+
+
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
