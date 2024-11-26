@@ -1,0 +1,310 @@
+import org.apache.poi.ss.usermodel.*;
+import org.apache.poi.xssf.streaming.SXSSFWorkbook;
+import org.apache.poi.ss.util.CellRangeAddress;
+
+import java.io.*;
+import java.util.*;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.nio.charset.StandardCharsets;
+import java.text.DecimalFormat;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+
+public class TransactionExcelGenerator {
+    
+    private static final int TOTAL_RECORDS = 10000; // 10,000 records
+    private static final DecimalFormat df = new DecimalFormat("#,##0.00");
+    private static final Random random = new Random();
+    private static final String[] CURRENCIES = {"USD", "EUR", "GBP", "JPY", "SGD", "HKD"};
+    private static final String[] PAYMENT_TYPES = {"BB", "PP", "TT"};
+    private static final String[] SUB_PAYMENT_TYPES = {"QQ", "RR", "SS"};
+    
+    // Test data generator with 10,000 records each
+    private static List<Map<String, Object>> generateTestData() {
+        System.out.println("Generating test data...");
+        List<Map<String, Object>> dataList = new ArrayList<>();
+        
+        // Generate single batch of 10,000 records
+        Map<String, Object> data = new HashMap<>();
+        List<Map<String, Object>> outwardList = generateTransactions("OUT", TOTAL_RECORDS);
+        List<Map<String, Object>> inwardList = generateTransactions("IN", TOTAL_RECORDS);
+        
+        data.put("outward", outwardList);
+        data.put("inward", inwardList);
+        dataList.add(data);
+        
+        System.out.println("Test data generation completed.");
+        return dataList;
+    }
+
+    private static List<Map<String, Object>> generateTransactions(String type, int count) {
+        List<Map<String, Object>> transactions = new ArrayList<>(count);
+        DateTimeFormatter dtf = DateTimeFormatter.ofPattern("yyyyMMddHHmmss");
+        
+        for (int i = 0; i < count; i++) {
+            Map<String, Object> transaction = new HashMap<>();
+            String timestamp = LocalDateTime.now().format(dtf);
+            
+            if (type.equals("OUT")) {
+                transaction.put("UETR", "UT" + timestamp + i);
+                transaction.put("SCPayReference", "SCPay" + timestamp + i);
+                transaction.put("PaymentType", PAYMENT_TYPES[random.nextInt(PAYMENT_TYPES.length)]);
+                transaction.put("SubPaymentType", SUB_PAYMENT_TYPES[random.nextInt(SUB_PAYMENT_TYPES.length)]);
+                transaction.put("DebitAccountNumber", "AC" + String.format("%06d", i));
+                transaction.put("DebitAmount", random.nextDouble() * 1000000);
+                transaction.put("DebitCurrency", CURRENCIES[random.nextInt(CURRENCIES.length)]);
+                transaction.put("ExceptionCode", "AM" + random.nextInt(100));
+            } else {
+                transaction.put("UETR", "UTI" + timestamp + i);
+                transaction.put("Reference", "REF" + timestamp + i);
+                transaction.put("PaymentType", PAYMENT_TYPES[random.nextInt(PAYMENT_TYPES.length)]);
+                transaction.put("SubPaymentType", SUB_PAYMENT_TYPES[random.nextInt(SUB_PAYMENT_TYPES.length)]);
+                transaction.put("CreditAccountNumber", "AC" + String.format("%06d", i));
+                transaction.put("CreditAmount", random.nextDouble() * 1000000);
+                transaction.put("CreditCurrency", CURRENCIES[random.nextInt(CURRENCIES.length)]);
+                transaction.put("ExceptionCode", "IN" + random.nextInt(100));
+            }
+            transactions.add(transaction);
+            
+            // Progress indicator
+            if (i > 0 && i % 1000 == 0) {
+                System.out.println("Generated " + i + " " + type + " records...");
+            }
+        }
+        return transactions;
+    }
+
+    public ByteArrayInputStream generateExcel() {
+        System.out.println("Starting Excel generation...");
+        try {
+            // Use streaming workbook with a window size of 1000 rows for better memory management
+            SXSSFWorkbook workbook = new SXSSFWorkbook(1000);
+            Sheet sheet = workbook.createSheet("Transactions");
+
+            // Create cell styles
+            CellStyle headerStyle = createHeaderStyle(workbook);
+            CellStyle normalStyle = createNormalStyle(workbook);
+            CellStyle redStyle = createColorStyle(workbook, IndexedColors.RED);
+            CellStyle greenStyle = createColorStyle(workbook, IndexedColors.GREEN);
+            
+            // Set column widths
+            setColumnWidths(sheet);
+
+            // Create headers
+            createHeaders(sheet, headerStyle);
+
+            // Process test data
+            System.out.println("Processing data...");
+            List<Map<String, Object>> dataList = generateTestData();
+            AtomicInteger currentRow = new AtomicInteger(2); // Start after headers
+
+            final int BATCH_SIZE = 1000;
+            dataList.forEach(data -> {
+                try {
+                    processDataChunk(data, sheet, currentRow, BATCH_SIZE, normalStyle, redStyle, greenStyle);
+                } catch (Exception e) {
+                    System.err.println("Error processing chunk: " + e.getMessage());
+                    e.printStackTrace();
+                }
+            });
+
+            System.out.println("Writing to output stream...");
+            ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
+            workbook.write(byteArrayOutputStream);
+            
+            // Cleanup
+            workbook.dispose();
+            byteArrayOutputStream.close();
+            
+            System.out.println("Excel generation completed successfully.");
+            return new ByteArrayInputStream(byteArrayOutputStream.toByteArray());
+            
+        } catch (Exception ex) {
+            System.err.println("Excel generation failed: " + ex.getMessage());
+            ex.printStackTrace();
+            return new ByteArrayInputStream("ERROR".getBytes(StandardCharsets.UTF_8));
+        }
+    }
+
+    private void setColumnWidths(Sheet sheet) {
+        // Set width for all columns (in units of 256th of a character width)
+        int[] columnWidths = {4000, 5000, 3000, 3000, 4000, 4000, 3000, 3000,  // Outward columns
+                             4000, 5000, 3000, 3000, 4000, 4000, 3000, 3000}; // Inward columns
+        for (int i = 0; i < columnWidths.length; i++) {
+            sheet.setColumnWidth(i, columnWidths[i]);
+        }
+    }
+
+    private void createHeaders(Sheet sheet, CellStyle headerStyle) {
+        // Create main header row
+        Row headerRow = sheet.createRow(0);
+        Cell outwardCell = headerRow.createCell(0);
+        outwardCell.setCellValue("Outward Transaction");
+        outwardCell.setCellStyle(headerStyle);
+        
+        Cell inwardCell = headerRow.createCell(8);
+        inwardCell.setCellValue("Inward Transaction");
+        inwardCell.setCellStyle(headerStyle);
+
+        // Merge header cells
+        sheet.addMergedRegion(new CellRangeAddress(0, 0, 0, 7));
+        sheet.addMergedRegion(new CellRangeAddress(0, 0, 8, 15));
+
+        // Create sub-headers
+        Row subHeaderRow = sheet.createRow(1);
+        String[] outwardHeaders = {"UETR", "SCPay Reference", "Payment Type", "Sub Payment Type", 
+                                 "Debit Account", "Debit Amount", "Currency", "Exception Code"};
+        String[] inwardHeaders = {"UETR", "Reference", "Payment Type", "Sub Payment Type", 
+                                "Credit Account", "Credit Amount", "Currency", "Exception Code"};
+
+        // Set outward headers
+        for (int i = 0; i < outwardHeaders.length; i++) {
+            Cell cell = subHeaderRow.createCell(i);
+            cell.setCellValue(outwardHeaders[i]);
+            cell.setCellStyle(headerStyle);
+        }
+
+        // Set inward headers
+        for (int i = 0; i < inwardHeaders.length; i++) {
+            Cell cell = subHeaderRow.createCell(i + 8);
+            cell.setCellValue(inwardHeaders[i]);
+            cell.setCellStyle(headerStyle);
+        }
+    }
+
+    private void processDataChunk(Map<String, Object> data, Sheet sheet, AtomicInteger currentRow, 
+                                int batchSize, CellStyle normalStyle, CellStyle redStyle, CellStyle greenStyle) {
+        
+        @SuppressWarnings("unchecked")
+        List<Map<String, Object>> outwardList = (List<Map<String, Object>>) data.get("outward");
+        @SuppressWarnings("unchecked")
+        List<Map<String, Object>> inwardList = (List<Map<String, Object>>) data.get("inward");
+
+        // Process transactions
+        int maxRows = Math.max(outwardList.size(), inwardList.size());
+        for (int i = 0; i < maxRows; i++) {
+            if (i > 0 && i % 1000 == 0) {
+                System.out.println("Processed " + i + " rows...");
+            }
+            
+            Row row = sheet.createRow(currentRow.getAndIncrement());
+            
+            // Process outward transaction
+            if (i < outwardList.size()) {
+                processOutwardTransaction(row, outwardList.get(i), normalStyle, redStyle);
+            }
+            
+            // Process inward transaction
+            if (i < inwardList.size()) {
+                processInwardTransaction(row, inwardList.get(i), normalStyle, greenStyle);
+            }
+        }
+    }
+
+    private void processOutwardTransaction(Row row, Map<String, Object> transaction, 
+                                         CellStyle normalStyle, CellStyle redStyle) {
+        Object[] values = {
+            transaction.get("UETR"),
+            transaction.get("SCPayReference"),
+            transaction.get("PaymentType"),
+            transaction.get("SubPaymentType"),
+            transaction.get("DebitAccountNumber"),
+            transaction.get("DebitAmount"),
+            transaction.get("DebitCurrency"),
+            transaction.get("ExceptionCode")
+        };
+
+        for (int i = 0; i < values.length; i++) {
+            Cell cell = row.createCell(i);
+            setCellValue(cell, values[i]);
+            cell.setCellStyle(i == 5 ? redStyle : normalStyle);
+        }
+    }
+
+    private void processInwardTransaction(Row row, Map<String, Object> transaction, 
+                                        CellStyle normalStyle, CellStyle greenStyle) {
+        Object[] values = {
+            transaction.get("UETR"),
+            transaction.get("Reference"),
+            transaction.get("PaymentType"),
+            transaction.get("SubPaymentType"),
+            transaction.get("CreditAccountNumber"),
+            transaction.get("CreditAmount"),
+            transaction.get("CreditCurrency"),
+            transaction.get("ExceptionCode")
+        };
+
+        for (int i = 0; i < values.length; i++) {
+            Cell cell = row.createCell(i + 8);
+            setCellValue(cell, values[i]);
+            cell.setCellStyle(i == 5 ? greenStyle : normalStyle);
+        }
+    }
+
+    private void setCellValue(Cell cell, Object value) {
+        if (value == null) {
+            cell.setCellValue("");
+        } else if (value instanceof Number) {
+            cell.setCellValue(df.format(value));
+        } else {
+            cell.setCellValue(value.toString());
+        }
+    }
+
+    private CellStyle createHeaderStyle(Workbook workbook) {
+        CellStyle style = workbook.createCellStyle();
+        style.setFillForegroundColor(IndexedColors.GREY_25_PERCENT.getIndex());
+        style.setFillPattern(FillPatternType.SOLID_FOREGROUND);
+        style.setBorderBottom(BorderStyle.THIN);
+        style.setBorderTop(BorderStyle.THIN);
+        style.setBorderRight(BorderStyle.THIN);
+        style.setBorderLeft(BorderStyle.THIN);
+        style.setAlignment(HorizontalAlignment.CENTER);
+        
+        Font font = workbook.createFont();
+        font.setBold(true);
+        style.setFont(font);
+        
+        return style;
+    }
+
+    private CellStyle createNormalStyle(Workbook workbook) {
+        CellStyle style = workbook.createCellStyle();
+        style.setBorderBottom(BorderStyle.THIN);
+        style.setBorderTop(BorderStyle.THIN);
+        style.setBorderRight(BorderStyle.THIN);
+        style.setBorderLeft(BorderStyle.THIN);
+        return style;
+    }
+
+    private CellStyle createColorStyle(Workbook workbook, IndexedColors color) {
+        CellStyle style = createNormalStyle(workbook);
+        style.setFillForegroundColor(color.getIndex());
+        style.setFillPattern(FillPatternType.SOLID_FOREGROUND);
+        return style;
+    }
+
+    // Main method to test the functionality
+    public static void main(String[] args) {
+        System.out.println("Starting application...");
+        long startTime = System.currentTimeMillis();
+        
+        TransactionExcelGenerator generator = new TransactionExcelGenerator();
+        
+        try (FileOutputStream fos = new FileOutputStream("transactions_large.xlsx")) {
+            ByteArrayInputStream bis = generator.generateExcel();
+            byte[] buffer = new byte[8192]; // Larger buffer for better performance
+            int length;
+            while ((length = bis.read(buffer)) > 0) {
+                fos.write(buffer, 0, length);
+            }
+            long endTime = System.currentTimeMillis();
+            System.out.println("Excel file generated successfully!");
+            System.out.println("Total execution time: " + (endTime - startTime) / 1000 + " seconds");
+        } catch (IOException e) {
+            System.err.println("Error generating Excel file:");
+            e.printStackTrace();
+        }
+    }
+}
