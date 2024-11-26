@@ -1,0 +1,160 @@
+import java.io.*;
+import java.util.*;
+import java.nio.charset.StandardCharsets;
+import java.text.DecimalFormat;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+
+public class TransactionCSVGenerator {
+    
+    private static final int TOTAL_RECORDS = 10000; // 10,000 records
+    private static final DecimalFormat df = new DecimalFormat("#,##0.00");
+    private static final Random random = new Random();
+    private static final String[] CURRENCIES = {"USD", "EUR", "GBP", "JPY", "SGD", "HKD"};
+    private static final String[] PAYMENT_TYPES = {"BB", "PP", "TT"};
+    private static final String[] SUB_PAYMENT_TYPES = {"QQ", "RR", "SS"};
+    private static final String CSV_SEPARATOR = ",";
+    
+    // Test data generator with 10,000 records each
+    private static List<Map<String, Object>> generateTestData() {
+        System.out.println("Generating test data...");
+        List<Map<String, Object>> dataList = new ArrayList<>();
+        
+        // Generate single batch of 10,000 records
+        Map<String, Object> data = new HashMap<>();
+        List<Map<String, Object>> outwardList = generateTransactions("OUT", TOTAL_RECORDS);
+        List<Map<String, Object>> inwardList = generateTransactions("IN", TOTAL_RECORDS);
+        
+        data.put("outward", outwardList);
+        data.put("inward", inwardList);
+        dataList.add(data);
+        
+        System.out.println("Test data generation completed.");
+        return dataList;
+    }
+
+    private static List<Map<String, Object>> generateTransactions(String type, int count) {
+        List<Map<String, Object>> transactions = new ArrayList<>(count);
+        DateTimeFormatter dtf = DateTimeFormatter.ofPattern("yyyyMMddHHmmss");
+        
+        for (int i = 0; i < count; i++) {
+            Map<String, Object> transaction = new HashMap<>();
+            String timestamp = LocalDateTime.now().format(dtf);
+            
+            if (type.equals("OUT")) {
+                transaction.put("UETR", "UT" + timestamp + i);
+                transaction.put("Reference", "SCPay" + timestamp + i);
+                transaction.put("PaymentType", PAYMENT_TYPES[random.nextInt(PAYMENT_TYPES.length)]);
+                transaction.put("SubPaymentType", SUB_PAYMENT_TYPES[random.nextInt(SUB_PAYMENT_TYPES.length)]);
+                transaction.put("AccountNumber", "AC" + String.format("%06d", i));
+                transaction.put("Amount", random.nextDouble() * 1000000);
+                transaction.put("Currency", CURRENCIES[random.nextInt(CURRENCIES.length)]);
+                transaction.put("ExceptionCode", "AM" + random.nextInt(100));
+                transaction.put("TransactionType", "Outward");
+            } else {
+                transaction.put("UETR", "UTI" + timestamp + i);
+                transaction.put("Reference", "REF" + timestamp + i);
+                transaction.put("PaymentType", PAYMENT_TYPES[random.nextInt(PAYMENT_TYPES.length)]);
+                transaction.put("SubPaymentType", SUB_PAYMENT_TYPES[random.nextInt(SUB_PAYMENT_TYPES.length)]);
+                transaction.put("AccountNumber", "AC" + String.format("%06d", i));
+                transaction.put("Amount", random.nextDouble() * 1000000);
+                transaction.put("Currency", CURRENCIES[random.nextInt(CURRENCIES.length)]);
+                transaction.put("ExceptionCode", "IN" + random.nextInt(100));
+                transaction.put("TransactionType", "Inward");
+            }
+            transactions.add(transaction);
+            
+            // Progress indicator
+            if (i > 0 && i % 1000 == 0) {
+                System.out.println("Generated " + i + " " + type + " records...");
+            }
+        }
+        return transactions;
+    }
+
+    public void generateCSV(String fileName) {
+        System.out.println("Starting CSV generation...");
+        
+        try (BufferedWriter writer = new BufferedWriter(new FileWriter(fileName))) {
+            // Write CSV headers
+            String[] headers = {
+                "Transaction Type", "UETR", "Reference", "Payment Type", "Sub Payment Type",
+                "Account Number", "Amount", "Currency", "Exception Code"
+            };
+            writer.write(String.join(CSV_SEPARATOR, headers));
+            writer.newLine();
+
+            // Process test data
+            System.out.println("Processing data...");
+            List<Map<String, Object>> dataList = generateTestData();
+
+            for (Map<String, Object> data : dataList) {
+                @SuppressWarnings("unchecked")
+                List<Map<String, Object>> outwardList = (List<Map<String, Object>>) data.get("outward");
+                @SuppressWarnings("unchecked")
+                List<Map<String, Object>> inwardList = (List<Map<String, Object>>) data.get("inward");
+
+                // Write outward transactions
+                writeTransactions(writer, outwardList);
+
+                // Write inward transactions
+                writeTransactions(writer, inwardList);
+            }
+
+            System.out.println("CSV generation completed successfully.");
+            
+        } catch (IOException ex) {
+            System.err.println("CSV generation failed: " + ex.getMessage());
+            ex.printStackTrace();
+        }
+    }
+
+    private void writeTransactions(BufferedWriter writer, List<Map<String, Object>> transactions) throws IOException {
+        int count = 0;
+        for (Map<String, Object> transaction : transactions) {
+            String[] values = {
+                escapeSpecialCharacters(transaction.get("TransactionType").toString()),
+                escapeSpecialCharacters(transaction.get("UETR").toString()),
+                escapeSpecialCharacters(transaction.get("Reference").toString()),
+                escapeSpecialCharacters(transaction.get("PaymentType").toString()),
+                escapeSpecialCharacters(transaction.get("SubPaymentType").toString()),
+                escapeSpecialCharacters(transaction.get("AccountNumber").toString()),
+                df.format(transaction.get("Amount")),
+                escapeSpecialCharacters(transaction.get("Currency").toString()),
+                escapeSpecialCharacters(transaction.get("ExceptionCode").toString())
+            };
+            
+            writer.write(String.join(CSV_SEPARATOR, values));
+            writer.newLine();
+            
+            count++;
+            if (count % 1000 == 0) {
+                System.out.println("Processed " + count + " transactions...");
+            }
+        }
+    }
+
+    private String escapeSpecialCharacters(String value) {
+        if (value == null) {
+            return "";
+        }
+        String escapedValue = value.replaceAll("\"", "\"\"");
+        if (escapedValue.contains(CSV_SEPARATOR) || escapedValue.contains("\"") || 
+            escapedValue.contains("\n")) {
+            return "\"" + escapedValue + "\"";
+        }
+        return escapedValue;
+    }
+
+    // Main method to test the functionality
+    public static void main(String[] args) {
+        System.out.println("Starting application...");
+        long startTime = System.currentTimeMillis();
+        
+        TransactionCSVGenerator generator = new TransactionCSVGenerator();
+        generator.generateCSV("transactions_large.csv");
+        
+        long endTime = System.currentTimeMillis();
+        System.out.println("Total execution time: " + (endTime - startTime) / 1000 + " seconds");
+    }
+}
