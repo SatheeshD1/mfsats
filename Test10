@@ -66,3 +66,253 @@ function App() {
   );
 }
 
+
+--------------------------------------------------------
+
+
+import React, { useState } from 'react';
+import { Card, CardHeader, CardContent } from '@/components/ui/card';
+import { RefreshCw, AlertCircle } from 'lucide-react';
+
+const SODBalanceIcon = () => (
+  <svg viewBox="0 0 24 24" className="h-12 w-12 text-blue-600" fill="currentColor">
+    <path d="M4 7a1 1 0 0 1 1-1h14a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7zm4 8h8m-8-3h8m-8-3h8" 
+          stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+  </svg>
+);
+
+const SODStatusIcon = () => (
+  <svg viewBox="0 0 24 24" className="h-12 w-12 text-blue-600" fill="currentColor">
+    <path d="M12 8v4l3 3m6-3a9 9 0 1 1-18 0 9 9 0 0 1 18 0z" 
+          stroke="currentColor" strokeWidth="2" strokeLinecap="round" fill="none"/>
+  </svg>
+);
+
+const MinBalanceIcon = () => (
+  <svg viewBox="0 0 24 24" className="h-12 w-12 text-blue-600" fill="currentColor">
+    <path d="M2 8a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V8zm4 8h12M6 12h12M6 8h12" 
+          stroke="currentColor" strokeWidth="2" strokeLinecap="round" fill="none"/>
+  </svg>
+);
+
+const SettledBalanceIcon = () => (
+  <svg viewBox="0 0 24 24" className="h-12 w-12 text-blue-600" fill="currentColor">
+    <path d="M9 12l2 2 4-4m6 2a9 9 0 1 1-18 0 9 9 0 0 1 18 0z" 
+          stroke="currentColor" strokeWidth="2" strokeLinecap="round" fill="none"/>
+  </svg>
+);
+
+const LiquidityManagement = () => {
+  const [releaseAmounts, setReleaseAmounts] = useState({
+    TIMED: '0.00',
+    PRIORITY: '0.00',
+    NORM: '0.00',
+    LOW: '0.00',
+    SCHEDULED: '0.00',
+    HOLD: '0.00'
+  });
+
+  const releaseTypes = [
+    { name: 'TIMED', priority: 1, mode: 'FREE' },
+    { name: 'PRIORITY', priority: 2, mode: 'FREE' },
+    { name: 'NORM', priority: 3, mode: 'FREE' },
+    { name: 'LOW', priority: 4, mode: 'FREE' },
+    { name: 'SCHEDULED', priority: 5, mode: 'FREE' },
+    { name: 'HOLD', priority: 6, mode: 'FREE' }
+  ];
+
+  const handleAmountChange = (type, value) => {
+    setReleaseAmounts(prev => ({
+      ...prev,
+      [type]: value
+    }));
+  };
+
+  return (
+    <div className="min-h-screen bg-gray-50 p-6">
+      {/* Header Section */}
+      <div className="mb-4 flex items-center justify-between">
+        <div className="flex items-center space-x-2">
+          <h1 className="text-2xl font-bold text-gray-800">Liquidity Maintenance</h1>
+          <span className="text-sm text-gray-500">Sunday 22-DEC-2024</span>
+        </div>
+        <div className="flex items-center space-x-4">
+          <select className="rounded-md border border-gray-300 px-3 py-1">
+            <option>RTGS</option>
+          </select>
+          <select className="rounded-md border border-gray-300 px-3 py-1">
+            <option>HKD</option>
+          </select>
+          <button className="flex items-center space-x-1 rounded-md bg-blue-600 px-3 py-1 text-white hover:bg-blue-700">
+            <RefreshCw className="h-4 w-4" />
+            <span>Refresh</span>
+          </button>
+        </div>
+      </div>
+
+      {/* Balance Adjustments Card */}
+      <Card className="mb-6">
+        <CardHeader className="flex flex-row items-center justify-between pb-2">
+          <h2 className="text-lg font-semibold">Balance Adjustments</h2>
+          <div className="flex items-center space-x-2">
+            <span className="text-sm text-gray-500">Overall RAG Status:</span>
+            <div className="h-3 w-3 rounded-full bg-red-500"></div>
+          </div>
+        </CardHeader>
+        <CardContent>
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead>
+                <tr className="border-b border-gray-200 text-left">
+                  <th className="p-3 text-sm font-medium text-gray-600">Indicator</th>
+                  <th className="p-3 text-sm font-medium text-gray-600">RAG Status</th>
+                  <th className="p-3 text-sm font-medium text-gray-600">RAG %</th>
+                  <th className="p-3 text-sm font-medium text-gray-600">Current</th>
+                  <th className="p-3 text-sm font-medium text-gray-600">Threshold</th>
+                  <th className="p-3 text-sm font-medium text-gray-600">Actual</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr className="border-b border-gray-100">
+                  <td className="p-3">IDL Position</td>
+                  <td className="p-3">
+                    <div className="h-3 w-3 rounded-full bg-red-500"></div>
+                  </td>
+                  <td className="p-3 text-red-600">-22.4%</td>
+                  <td className="p-3">-2,223,918,507.77</td>
+                  <td className="p-3">1,000,000,000</td>
+                  <td className="p-3">-92,581,444.84</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </CardContent>
+      </Card>
+
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
+        {/* Release Amount Card */}
+        <Card className="col-span-2">
+          <CardHeader>
+            <h2 className="text-lg font-semibold">Release Amount</h2>
+          </CardHeader>
+          <CardContent>
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead>
+                  <tr className="border-b border-gray-200 text-left">
+                    <th className="p-3 text-sm font-medium text-gray-600">Type</th>
+                    <th className="p-3 text-sm font-medium text-gray-600">Count</th>
+                    <th className="p-3 text-sm font-medium text-gray-600">Value</th>
+                    <th className="p-3 text-sm font-medium text-gray-600">Status</th>
+                    <th className="p-3 text-sm font-medium text-gray-600">Currency</th>
+                    <th className="p-3 text-sm font-medium text-gray-600">Release Amount</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {releaseTypes.map((type) => (
+                    <tr key={type.name} className="border-b border-gray-100">
+                      <td className="p-3">{type.name}</td>
+                      <td className="p-3">0</td>
+                      <td className="p-3">0.00</td>
+                      <td className="p-3">
+                        <span className="rounded-full bg-gray-100 px-2 py-1 text-xs text-gray-600">
+                          DISABLED
+                        </span>
+                      </td>
+                      <td className="p-3">HKD</td>
+                      <td className="p-3">
+                        <input
+                          type="text"
+                          value={releaseAmounts[type.name]}
+                          onChange={(e) => handleAmountChange(type.name, e.target.value)}
+                          className="w-full rounded-md border border-gray-300 p-1 text-right"
+                        />
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* SOD & LIMITS Card */}
+        <div className="space-y-6">
+          <Card>
+            <CardHeader>
+              <h2 className="text-lg font-semibold">SOD & LIMITS</h2>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="rounded-lg bg-gray-50 p-4 text-center">
+                  <SODBalanceIcon />
+                  <p className="mt-2 text-sm text-gray-500">SOD Balance</p>
+                  <p className="text-xl font-semibold">0.00</p>
+                </div>
+                <div className="rounded-lg bg-gray-50 p-4 text-center">
+                  <SODStatusIcon />
+                  <p className="mt-2 text-sm text-gray-500">SOD Status</p>
+                  <p className="text-xl font-semibold">Yet to Start</p>
+                </div>
+                <div className="rounded-lg bg-gray-50 p-4 text-center">
+                  <MinBalanceIcon />
+                  <p className="mt-2 text-sm text-gray-500">Minimum Balance</p>
+                  <p className="text-xl font-semibold">500,000,000.00</p>
+                </div>
+                <div className="rounded-lg bg-gray-50 p-4 text-center">
+                  <SettledBalanceIcon />
+                  <p className="mt-2 text-sm text-gray-500">Settled Balance</p>
+                  <p className="text-xl font-semibold">0.00</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Release Mode Card */}
+          <Card>
+            <CardHeader>
+              <h2 className="text-lg font-semibold">Release Mode</h2>
+              <p className="text-sm text-gray-500">DTD 10:30:01 - 15:00:00</p>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-2">
+                <table className="w-full">
+                  <thead>
+                    <tr className="text-left">
+                      <th className="p-2 text-sm font-medium text-gray-600">Profile</th>
+                      <th className="p-2 text-sm font-medium text-gray-600">Priority</th>
+                      <th className="p-2 text-sm font-medium text-gray-600">Mode</th>
+                      <th className="p-2 text-sm font-medium text-gray-600">Profile</th>
+                      <th className="p-2 text-sm font-medium text-gray-600">Free Flow</th>
+                      <th className="p-2 text-sm font-medium text-gray-600">Stopped</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {releaseTypes.map((type, index) => (
+                      <tr key={type.name}>
+                        <td className="p-2">{type.name}</td>
+                        <td className="p-2">{type.priority}</td>
+                        <td className="p-2">{type.mode}</td>
+                        <td className="p-2">
+                          <input type="radio" name={`profile-${type.name}`} />
+                        </td>
+                        <td className="p-2">
+                          <input type="radio" name={`profile-${type.name}`} />
+                        </td>
+                        <td className="p-2">
+                          <input type="radio" name={`profile-${type.name}`} />
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default LiquidityManagement;
