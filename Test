@@ -31,3 +31,34 @@ SELECT format(
   columns_sql
 ) AS dynamic_query
 FROM column_definitions;
+
+
+
+
+
+
+_____
+
+WITH templates_to_delete AS (
+    SELECT DISTINCT srti.template_id
+    FROM scpay_ui_gbl.scpay_reports_template_info srti
+    LEFT JOIN LATERAL (
+        SELECT *
+        FROM scpay_ui_gbl.scpay_schedule_reports
+        WHERE ctry_cd = srti.ctry_cd 
+        AND template_id = srti.template_id
+        ORDER BY generated_at DESC LIMIT 1
+    ) scr ON srti.ctry_cd = scr.ctry_cd 
+        AND srti.template_id = scr.template_id
+    WHERE srti.user_id != 'SYSTEM'
+    AND srti.template_id NOT LIKE 'REPORTS_SYS_%'
+    AND (
+        -- Case 1: Template was never used (no generation history)
+        scr.template_id IS NULL
+        OR
+        -- Case 2: Template was not used in last 90 days
+        date(scr.generated_at) <= (current_date - 90)
+    )
+)
+DELETE FROM scpay_ui_gbl.scpay_reports_template_info
+WHERE template_id IN (SELECT template_id FROM templates_to_delete);
