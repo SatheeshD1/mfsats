@@ -1,0 +1,161 @@
+
+CR
+I have one temp table. In certain task I will add 20 lakh uetrs and once that operation completes I will erase that table. In second time if again adding 1 lakh record for some other operation. I am trying to get uetrs suddenly it is stopped providing that uetrs even table having values. After running truncate table alone I can perform second operation. What is the problem related to that table vacuum analysis on only. Kindly help to solve this problem
+
+
+Let me help analyze this PostgreSQL issue you're experiencing. Let me understand the scenario correctly:
+
+You're using a temporary table
+First operation: You insert 2 million records (20 lakh UETRs)
+You erase the data
+Second operation: You try to insert 100,000 records (1 lakh UETRs)
+The table stops working properly until you use TRUNCATE
+This behavior suggests a few potential issues:
+
+Are you using DELETE or TRUNCATE to erase the data after the first operation? If using DELETE, it might be causing:
+Table bloat
+Autovacuum not keeping up
+Statistics becoming stale
+Here's what I recommend trying:
+
+sql
+
+Copy
+-- After your first operation completes and you want to clear the table
+TRUNCATE TABLE your_temp_table;
+-- Then run
+ANALYZE your_temp_table;
+If you still need to use DELETE instead of TRUNCATE, try this approach:
+
+sql
+
+Copy
+-- After bulk DELETE
+VACUUM ANALYZE your_temp_table;
+A few questions to help diagnose further:
+
+How are you erasing the data currently (DELETE or TRUNCATE)?
+Is this a regular temporary table (created with CREATE TEMP TABLE) or a permanent table?
+Also, consider monitoring table statistics with:
+
+sql
+
+Copy
+SELECT relname, n_live_tup, n_dead_tup, last_autovacuum 
+FROM pg_stat_user_tables 
+WHERE relname = 'your_temp_table';
+This will help understand if there's an issue with dead tuples accumulating in your table.
+
+Copy
+Retry
+
+
+
+CR
+Could you please explain below points in detail:
+Table bloat
+Autovacuum not keeping up
+Statistics becoming stale
+
+
+Let me explain each of these PostgreSQL concepts in detail:
+
+Table Bloat:
+When you DELETE records, PostgreSQL doesn't immediately reclaim the physical space
+The deleted rows are marked as "dead tuples" but still occupy space on disk
+Over time, this leads to "bloat" - where your table takes up more space than it needs
+Example:
+sql
+
+Copy
+-- Table with 1 million rows taking 100MB
+DELETE FROM table WHERE id < 500000;
+-- Table still uses ~100MB despite having only 500,000 rows
+Impact: Slower queries, more I/O, wasted disk space
+Solution: Use TRUNCATE for complete cleanup or regular VACUUM for partial cleanup
+Autovacuum Not Keeping Up:
+Autovacuum is PostgreSQL's automatic cleanup process
+It triggers based on certain thresholds:
+sql
+
+Copy
+-- Check autovacuum settings
+SELECT name, setting 
+FROM pg_settings 
+WHERE name LIKE 'autovacuum%';
+Common scenarios where it falls behind:
+Too many dead tuples accumulating too quickly
+Heavy write workload
+Resource constraints (CPU/IO)
+Signs of autovacuum struggling:
+sql
+
+Copy
+-- Check for tables with high dead tuple counts
+SELECT relname, n_dead_tup, last_autovacuum
+FROM pg_stat_user_tables
+WHERE n_dead_tup > 10000;
+Impact: Performance degradation, increased table bloat
+Solutions:
+Adjust autovacuum parameters
+sql
+
+Copy
+ALTER TABLE your_table SET (
+  autovacuum_vacuum_scale_factor = 0.1,
+  autovacuum_analyze_scale_factor = 0.05
+);
+Manual VACUUM during maintenance windows
+Stale Statistics:
+PostgreSQL's query planner relies on table statistics to create efficient execution plans
+Statistics include:
+Number of rows
+Data distribution
+Common values
+They become stale when:
+Large number of changes (INSERT/UPDATE/DELETE)
+Significant changes in data distribution
+Check current statistics:
+sql
+
+Copy
+SELECT schemaname, tablename, last_analyze, last_autoanalyze
+FROM pg_stat_user_tables
+WHERE tablename = 'your_table';
+Impact:
+Poor query plans
+Unexpected performance issues
+Wrong join strategies
+Solutions:
+Regular ANALYZE
+sql
+
+Copy
+-- After bulk operations
+ANALYZE your_table;
+
+-- Get detailed statistics
+SELECT * FROM pg_stats 
+WHERE tablename = 'your_table';
+For your specific case with temporary tables, here's a recommended approach:
+
+sql
+
+Copy
+-- After bulk operations
+TRUNCATE TABLE temp_table;  -- Clean removal of all data
+ANALYZE temp_table;         -- Update statistics
+
+-- Or if using DELETE
+DELETE FROM temp_table WHERE condition;
+VACUUM ANALYZE temp_table;  -- Clean up space and update statistics
+
+-- Monitor table health
+SELECT relname, 
+       n_live_tup,
+       n_dead_tup,
+       last_vacuum,
+       last_analyze
+FROM pg_stat_user_tables
+WHERE relname = 'temp_table';
+These concepts are interconnected - table bloat leads to autovacuum struggling, which in turn can lead to stale statistics. Managing them properly is key to maintaining good database performance.
