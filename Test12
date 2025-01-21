@@ -1,0 +1,47 @@
+import React, { useState } from 'react';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+
+const CountrySelect = () => {
+  const [selectedCountry, setSelectedCountry] = useState('');
+
+  const countries = [
+    { code: 'AU', name: 'Australia' },
+    { code: 'FK', name: 'Falkland Islands' },
+    { code: 'IN', name: 'India' },
+    { code: 'MO', name: 'Macao' },
+    { code: 'MU', name: 'Mauritius' },
+    { code: 'PH', name: 'Philippines' },
+    { code: 'SA', name: 'Saudi Arabia' },
+    { code: 'VN', name: 'Vietnam' }
+  ];
+
+  return (
+    <div className="w-40">
+      <Select value={selectedCountry} onValueChange={setSelectedCountry}>
+        <SelectTrigger className="w-full h-9 px-3 py-1 text-sm text-center">
+          <SelectValue placeholder="Select" className="text-muted-foreground" />
+        </SelectTrigger>
+        <SelectContent className="w-40">
+          {countries.map((country) => (
+            <SelectItem 
+              key={country.code} 
+              value={country.code}
+              className="cursor-pointer [&>*]:flex [&>*]:justify-center [&>*]:w-full"
+            >
+              <div className="flex items-center gap-2">
+                <img
+                  src={`/flags/${country.code.toLowerCase()}.svg`}
+                  alt={`${country.name} flag`}
+                  className="w-5 h-3.5 object-cover rounded-sm shadow-sm"
+                />
+                <span className="text-sm font-medium">{country.code}</span>
+              </div>
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+    </div>
+  );
+};
+
+export default CountrySelect;
