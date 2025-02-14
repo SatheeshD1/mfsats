@@ -1,0 +1,153 @@
+import React, { Component } from 'react';
+import { Search, ArrowUpDown } from 'lucide-react';
+
+class DataTable extends Component {
+  constructor(props) {
+    super(props);
+    this.state = {
+      searchQuery: '',
+      sortConfig: {
+        key: null,
+        direction: 'ascending'
+      }
+    };
+  }
+
+  handleSearch = (event) => {
+    this.setState({ searchQuery: event.target.value });
+  };
+
+  handleSort = (key) => {
+    const direction = this.state.sortConfig.key === key && 
+      this.state.sortConfig.direction === 'ascending' ? 'descending' : 'ascending';
+    this.setState({
+      sortConfig: { key, direction }
+    });
+  };
+
+  getSortedData = () => {
+    const { data } = this.props;
+    const { searchQuery, sortConfig } = this.state;
+
+    let filteredData = [...data];
+
+    // Apply search filter
+    if (searchQuery) {
+      filteredData = filteredData.filter(item =>
+        Object.values(item).some(value =>
+          String(value).toLowerCase().includes(searchQuery.toLowerCase())
+        )
+      );
+    }
+
+    // Apply sorting
+    if (sortConfig.key) {
+      filteredData.sort((a, b) => {
+        if (a[sortConfig.key] < b[sortConfig.key]) {
+          return sortConfig.direction === 'ascending' ? -1 : 1;
+        }
+        if (a[sortConfig.key] > b[sortConfig.key]) {
+          return sortConfig.direction === 'ascending' ? 1 : -1;
+        }
+        return 0;
+      });
+    }
+
+    return filteredData;
+  };
+
+  render() {
+    const { columns } = this.props;
+    const { searchQuery } = this.state;
+
+    return (
+      <div className="w-full">
+        {/* Search Bar */}
+        <div className="flex items-center mb-4 bg-gray-100 p-2 rounded">
+          <Search className="w-5 h-5 text-gray-500 mr-2" />
+          <input
+            type="text"
+            placeholder="Search..."
+            value={searchQuery}
+            onChange={this.handleSearch}
+            className="w-full bg-transparent outline-none"
+          />
+        </div>
+
+        {/* Table */}
+        <div className="overflow-x-auto">
+          <table className="w-full border-collapse">
+            <thead>
+              <tr className="bg-blue-900 text-white">
+                {columns.map((column) => (
+                  <th
+                    key={column.key}
+                    className="p-3 text-left cursor-pointer hover:bg-blue-800"
+                    onClick={() => this.handleSort(column.key)}
+                  >
+                    <div className="flex items-center space-x-2">
+                      <span>{column.label}</span>
+                      <ArrowUpDown className="w-4 h-4" />
+                    </div>
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {this.getSortedData().map((row, index) => (
+                <tr
+                  key={index}
+                  className={`
+                    border-b
+                    ${index % 2 === 0 ? 'bg-white' : 'bg-gray-50'}
+                    hover:bg-gray-100
+                  `}
+                >
+                  {columns.map((column) => (
+                    <td key={column.key} className="p-3">
+                      {row[column.key]}
+                    </td>
+                  ))}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    );
+  }
+}
+
+// Example usage:
+const ExampleTable = () => {
+  const columns = [
+    { key: 'sno', label: 'Sno' },
+    { key: 'uetr', label: 'UETR' },
+    { key: 'action', label: 'Action' },
+    { key: 'transactionStatus', label: 'Transaction Status' },
+    { key: 'transactionType', label: 'Transaction Type' },
+    { key: 'modifierType', label: 'Modifier Type' },
+    { key: 'modifiedBy', label: 'Modified By' },
+    { key: 'modifiedDate', label: 'Modified Date' },
+    { key: 'errorCode', label: 'Error Code' }
+  ];
+
+  const data = [
+    {
+      sno: '1',
+      uetr: '29fe2b89-eb82-4754-b8da-f7eda4c34101',
+      action: 'UETR generation and Moved to DB Persist',
+      transactionStatus: 'In Progress',
+      transactionType: 'Received',
+      modifierType: 'SYSTEM',
+      modifiedBy: 'Router',
+      modifiedDate: '11/02/2025 19:57:57',
+      errorCode: ''
+    },
+    // Add more data rows as needed
+  ];
+
+  return <DataTable columns={columns} data={data} />;
+};
+
+export default ExampleTable;
