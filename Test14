@@ -5,7 +5,7 @@ class DataTable extends Component {
   constructor(props) {
     super(props);
     this.state = {
-      searchQuery: '',
+      columnFilters: {},
       sortConfig: {
         key: null,
         direction: 'ascending'
@@ -13,8 +13,13 @@ class DataTable extends Component {
     };
   }
 
-  handleSearch = (event) => {
-    this.setState({ searchQuery: event.target.value });
+  handleColumnSearch = (columnKey, value) => {
+    this.setState(prevState => ({
+      columnFilters: {
+        ...prevState.columnFilters,
+        [columnKey]: value
+      }
+    }));
   };
 
   handleSort = (key) => {
@@ -25,20 +30,23 @@ class DataTable extends Component {
     });
   };
 
-  getSortedData = () => {
+  getFilteredAndSortedData = () => {
     const { data } = this.props;
-    const { searchQuery, sortConfig } = this.state;
+    const { columnFilters, sortConfig } = this.state;
 
     let filteredData = [...data];
 
-    // Apply search filter
-    if (searchQuery) {
-      filteredData = filteredData.filter(item =>
-        Object.values(item).some(value =>
-          String(value).toLowerCase().includes(searchQuery.toLowerCase())
-        )
-      );
-    }
+    // Apply column filters
+    Object.keys(columnFilters).forEach(columnKey => {
+      const filterValue = columnFilters[columnKey];
+      if (filterValue) {
+        filteredData = filteredData.filter(item =>
+          String(item[columnKey])
+            .toLowerCase()
+            .includes(filterValue.toLowerCase())
+        );
+      }
+    });
 
     // Apply sorting
     if (sortConfig.key) {
@@ -58,53 +66,51 @@ class DataTable extends Component {
 
   render() {
     const { columns } = this.props;
-    const { searchQuery } = this.state;
+    const { columnFilters } = this.state;
 
     return (
       <div className="w-full">
-        {/* Search Bar */}
-        <div className="flex items-center mb-4 bg-gray-100 p-2 rounded">
-          <Search className="w-5 h-5 text-gray-500 mr-2" />
-          <input
-            type="text"
-            placeholder="Search..."
-            value={searchQuery}
-            onChange={this.handleSearch}
-            className="w-full bg-transparent outline-none"
-          />
-        </div>
-
-        {/* Table */}
         <div className="overflow-x-auto">
           <table className="w-full border-collapse">
             <thead>
               <tr className="bg-blue-900 text-white">
                 {columns.map((column) => (
-                  <th
-                    key={column.key}
-                    className="p-3 text-left cursor-pointer hover:bg-blue-800"
-                    onClick={() => this.handleSort(column.key)}
-                  >
-                    <div className="flex items-center space-x-2">
-                      <span>{column.label}</span>
-                      <ArrowUpDown className="w-4 h-4" />
+                  <th key={column.key} className="p-3 border-r border-blue-800 last:border-r-0">
+                    <div className="flex flex-col space-y-2">
+                      <div 
+                        className="flex items-center justify-between cursor-pointer hover:bg-blue-800"
+                        onClick={() => this.handleSort(column.key)}
+                      >
+                        <span>{column.label}</span>
+                        <ArrowUpDown className="w-4 h-4" />
+                      </div>
+                      <div className="flex items-center bg-white rounded">
+                        <Search className="w-4 h-4 text-gray-500 ml-2" />
+                        <input
+                          type="text"
+                          placeholder={`Search ${column.label}...`}
+                          value={columnFilters[column.key] || ''}
+                          onChange={(e) => this.handleColumnSearch(column.key, e.target.value)}
+                          className="w-full p-1 text-sm text-gray-700 bg-transparent outline-none"
+                        />
+                      </div>
                     </div>
                   </th>
                 ))}
               </tr>
             </thead>
             <tbody>
-              {this.getSortedData().map((row, index) => (
+              {this.getFilteredAndSortedData().map((row, index) => (
                 <tr
                   key={index}
                   className={`
-                    border-b
+                    border-b border-gray-200
                     ${index % 2 === 0 ? 'bg-white' : 'bg-gray-50'}
                     hover:bg-gray-100
                   `}
                 >
                   {columns.map((column) => (
-                    <td key={column.key} className="p-3">
+                    <td key={column.key} className="p-3 border-r border-gray-200 last:border-r-0">
                       {row[column.key]}
                     </td>
                   ))}
