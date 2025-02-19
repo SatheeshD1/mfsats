@@ -104,3 +104,59 @@ RUN chown -R ${USER_UID}:${GRP_UID} /var/www && \
 USER ${USER_UID}
 
 EXPOSE 8080
+
+
+
+
+------------
+
+
+
+# azure-pipelines-npm.yml
+trigger:
+  - main
+
+type: git
+
+extends:
+  template: governed-template/build.yml@governed-templates
+  parameters:
+    releaseId: ${{ parameters.releaseId }}
+    buildStackName: node
+    buildStackParams:
+      pool: 'sc-linux'
+      nodeVersion: '14.16.1'
+      npmTaskList:
+        - name: 'Run Build'
+          task: run build
+      dockerBuild: true
+      generateCodeCoverage: 'false'
+      uiNpmApp: true
+      useNpmCI: false
+      uiNpmBuildDir: build or dist
+      sonarInclusions: '*.npm,**/node_modules/**'
+      sonarExclusions: '**/src/**,**/public/**'
+      dockerRepository: '$(DockerRespository_${{parameters.DockerRespository}})'
+      CalculateImageDigest: true
+      dockerFilePaths:
+        - path: '$(Build.Repository.Name)/Dockerfile'
+          imageName: '$(Build.Repository.Name)-$(Build.SourceBranchName)'
+          imageTag: '$(Build.BuildId)'
+          dockerArguments: |
+            --no-cache 
+            --build-arg TRANSPILED_JS_FOLDER=build 
+            --build-arg REACT_APP_API_URL=$(REACT_APP_API_URL)
+          dockerBuildContext: '$(Build.Repository.Name)'
+      preInputFileList: ["Dockerfile"]
+      
+      # Add environment file creation step
+      preSteps:
+        - script: |
+            echo "Creating .env file..."
+            echo "REACT_APP_API_URL=$(REACT_APP_API_URL)" > .env
+            echo "REACT_APP_ENV=$(Build.SourceBranchName)" >> .env
+            echo "REACT_APP_VERSION=$(Build.BuildNumber)" >> .env
+            echo "Contents of .env file:"
+            cat .env
+          displayName: 'Create Environment Configuration'
+          workingDirectory: $(Build.Repository.Name)
