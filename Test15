@@ -1,0 +1,106 @@
+# azure-pipelines-npm.yml
+parameters:
+  - name: environment
+    type: string
+    default: 'sit'
+    values:
+      - sit
+      - prd
+
+extends:
+  template: governed-template/build.yml@governed-templates
+parameters:
+  releaseId: ${{ parameters.releaseId }}
+  buildStackName: node
+  buildStackParams:
+    pool: 'sc-linux'
+    nodeVersion: '16.x'
+    npmTaskList:
+      - name: 'Run Build'
+        task: run build
+    dockerBuild: true
+    generateCodeCoverage: 'false'
+    uiNpmApp: true
+    useNpmCI: false
+    uiNpmBuildDir: build or dist
+    sonarInclusions: '**.npm,**/node_modules/**'
+    sonarExclusions: '**/src/**,**/public/**'
+    dockerRepository: '${DockerRespository_${{parameters.environment}}}'
+    CalculateImageDigest: true
+    dockerFilePaths:
+      - path: '$(Build.Repository.Name)/Dockerfile'
+        imageName: '$(Build.Repository.Name)-${{parameters.environment}}'
+        imageTag: '$(Build.BuildId)'
+        dockerArguments: '--no-cache --build-arg TRANSPILED_JS_FOLDER=build --build-arg REACT_APP_API_URL=$(API_GATEWAY_URL_${{parameters.environment}})'
+        dockerBuildContext: '$(Build.Repository.Name)'
+    preInputFileList: ["Dockerfile"]
+
+variables:
+  - group: react-app-${{parameters.environment}}  # Environment-specific variable group
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+-------------------------------
+
+
+
+
+
+
+FROM node:16 AS builder
+
+# Build arguments for environment variables
+ARG TRANSPILED_JS_FOLDER
+ARG REACT_APP_API_URL
+
+# Set environment variables
+ENV REACT_APP_API_URL=$REACT_APP_API_URL
+
+WORKDIR /app
+COPY package*.json ./
+RUN npm install
+
+COPY . ./
+RUN npm run build
+
+# Production environment
+FROM artifactory.global.standardchartered.com/pv-images-products/hg/webeng/nginx:1.24-202501207
+
+ENV LANG=en_US.UTF-8 \
+    LANGUAGE=en_US:en \
+    USER_UID=10007 \
+    USER_NAME=scpayapp \
+    GRP_UID=1000 \
+    GRP_NAME=scpayappgrp \
+    HOME=/home/scpayapp
+
+RUN microdnf -y update
+RUN /usr/sbin/groupadd -g ${GRP_UID} ${GRP_NAME} && \
+    /usr/sbin/useradd --create-home ${USER_NAME} --home-dir ${HOME} --uid=${USER_UID} --gid=${GRP_UID} --system --shell=/sbin/nologin
+
+COPY nginx.conf /apps/nginx/instances/nginx-default/nginx.conf
+COPY --from=builder /app/${TRANSPILED_JS_FOLDER} /var/www/html/
+
+RUN chown -R ${USER_UID}:${GRP_UID} /var/www && \
+    chown -R ${USER_UID}:${GRP_UID} /apps/nginx && \
+    chown -R ${USER_UID}:${GRP_UID} /var/log/nginx && \
+    chmod 755 -R /var/www && \
+    chmod 755 -R /apps/nginx && \
+    chmod 755 -R /var/log/nginx
+
+USER ${USER_UID}
+
+EXPOSE 8080
