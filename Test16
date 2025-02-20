@@ -1,0 +1,14 @@
+const fs = require('fs');
+
+// Read the current .env file
+const envFile = '.env';
+let envContent = fs.readFileSync(envFile, 'utf8');
+
+// Update the gateway URL (replace 'GATEWAY_URL' with your actual variable name)
+const newGatewayUrl = 'https://new-gateway-url.com'; // Replace with your dynamic URL or pipeline variable
+envContent = envContent.replace(/GATEWAY_URL=.*/g, `GATEWAY_URL=${newGatewayUrl}`);
+
+// Write the updated content back to .env
+fs.writeFileSync(envFile, envContent, 'utf8');
+
+console.log('Gateway URL updated in .env file');
