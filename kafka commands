@@ -18,3 +18,6 @@ kafka consumer:
 
 kafka producer:
 .\bin\windows\kafka-console-producer.bat --topic book-ticket --bootstrap-server localhost:9092
+
+delete kafka topic:
+.\bin\windows\kafka-topics.bat --delete --topic book-ticket --bootstrap-server localhost:9092
