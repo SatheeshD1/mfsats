@@ -1,0 +1,72 @@
+class Dropdown extends React.Component {
+  constructor(props) {
+    super(props);
+    this.state = {
+      isOpen: false,
+      selectedOption: ''
+    };
+    this.dropdownRef = React.createRef();
+    this.handleKeyDown = this.handleKeyDown.bind(this);
+    this.handleSelect = this.handleSelect.bind(this);
+    this.handleClickOutside = this.handleClickOutside.bind(this);
+  }
+
+  componentDidMount() {
+    document.addEventListener('keydown', this.handleKeyDown);
+    document.addEventListener('mousedown', this.handleClickOutside);
+  }
+
+  componentWillUnmount() {
+    document.removeEventListener('keydown', this.handleKeyDown);
+    document.removeEventListener('mousedown', this.handleClickOutside);
+  }
+
+  handleKeyDown(event) {
+    if (event.ctrlKey && event.shiftKey && event.key.toLowerCase() === 'u') {
+      event.preventDefault();
+      this.setState(prevState => ({ isOpen: !prevState.isOpen }));
+    }
+  }
+
+  handleSelect(option) {
+    this.setState({ selectedOption: option, isOpen: false });
+  }
+
+  handleClickOutside(event) {
+    if (this.dropdownRef.current && !this.dropdownRef.current.contains(event.target)) {
+      this.setState({ isOpen: false });
+    }
+  }
+
+  render() {
+    const { isOpen, selectedOption } = this.state;
+    const options = ['Maker', 'Checker', 'Viewer'];
+
+    return (
+      <div className="w-64" ref={this.dropdownRef}>
+        <button
+          onClick={() => this.setState({ isOpen: !isOpen })}
+          className="w-full bg-blue-500 text-white px-4 py-2 rounded-md hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-400"
+        >
+          {selectedOption || 'Select Role'}
+        </button>
+        {isOpen && (
+          <ul className="mt-2 bg-white border rounded-md shadow-lg">
+            {options.map(option => (
+              <li
+                key={option}
+                onClick={() => this.handleSelect(option)}
+                className="px-4 py-2 hover:bg-blue-100 cursor-pointer"
+              >
+                {option}
+              </li>
+            ))}
+          </ul>
+        )}
+        <p className="mt-4 text-gray-600">
+          Press <span className="font-mono">Ctrl+Shift+U</span> to toggle dropdown
+        </p>
+      </div>
+    );
+  }
+}
