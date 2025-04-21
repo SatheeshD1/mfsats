@@ -77,3 +77,79 @@ class App extends Component {
 }
 
 export default App;
+
+
+
+
+
+
+
+
+
+
+
+
+
+import React, { Component } from 'react';
+import { AgGridReact } from 'ag-grid-react';
+import 'ag-grid-community/styles/ag-grid.css';
+import 'ag-grid-community/styles/ag-theme-alpine.css';
+import 'ag-grid-enterprise'; // Required for enterprise features like clipboard
+
+class AgGridComponent extends Component {
+  constructor(props) {
+    super(props);
+    this.state = {
+      columnDefs: [
+        { headerName: 'ID', field: 'id', editable: true, sortable: true, filter: true },
+        { headerName: 'Name', field: 'name', editable: true, sortable: true, filter: true },
+        { headerName: 'Age', field: 'age', editable: true, sortable: true, filter: true },
+      ],
+      rowData: [
+        { id: 1, name: 'John Doe', age: 30 },
+        { id: 2, name: 'Jane Smith', age: 25 },
+        { id: 3, name: 'Sam Brown', age: 40 },
+      ],
+      defaultColDef: {
+        flex: 1,
+        minWidth: 100,
+        editable: true, // Enable cell editing
+        resizable: true,
+      },
+    };
+  }
+
+  onGridReady = (params) => {
+    this.gridApi = params.api;
+    this.gridColumnApi = params.columnApi;
+    // Ensure grid is focused to capture keyboard events
+    params.api.setFocusedCell(0, 'id');
+  };
+
+  render() {
+    return (
+      <div style={{ height: '500px', width: '100%' }} className="ag-theme-alpine">
+        <AgGridReact
+          columnDefs={this.state.columnDefs}
+          rowData={this.state.rowData}
+          defaultColDef={this.state.defaultColDef}
+          onGridReady={this.onGridReady}
+          // Enable key grid options for shortcuts
+          rowSelection="multiple" // Enables multi-row selection (Shift + Space, Ctrl + A)
+          enableRangeSelection={true} // Enables range selection (Ctrl + Click, Shift + Arrow)
+          enableFillHandle={true} // Enables fill handle for copying/dragging values
+          undoRedoCellEditing={true} // Enables Ctrl + Z / Ctrl + Y for undo/redo
+          enableCellTextSelection={true} // Allows text selection in cells
+          clipboardOptions={{
+            copyHeadersToClipboard: true, // Ctrl + C copies headers
+            pasteFromClipboard: true, // Ctrl + V pastes from clipboard
+          }}
+          // Ensure keyboard navigation is enabled (default is true)
+          suppressKeyboardEvent={(params) => false} // Allow all keyboard events
+        />
+      </div>
+    );
+  }
+}
+
+export default AgGridComponent;
