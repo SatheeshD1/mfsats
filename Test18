@@ -1,0 +1,79 @@
+import React, { Component } from 'react';
+import Select from 'react-select';
+
+const options = [
+  { value: 'maker', label: 'Maker' },
+  { value: 'checker', label: 'Checker' },
+  { value: 'viewer', label: 'Viewer' },
+];
+
+class App extends Component {
+  constructor(props) {
+    super(props);
+    this.state = {
+      selectedOption: null,
+      menuIsOpen: false, // State to control dropdown open/close
+    };
+    this.selectRef = React.createRef(); // Create a ref for the Select component
+  }
+
+  // Handle change in selection
+  handleChange = (selectedOption) => {
+    this.setState({ selectedOption });
+  };
+
+  // Programmatically open the dropdown
+  openDropdown = () => {
+    this.setState({ menuIsOpen: true }, () => {
+      // Focus the select component to ensure the dropdown is interactable
+      if (this.selectRef.current) {
+        this.selectRef.current.focus();
+      }
+    });
+  };
+
+  // Handle keydown event for Ctrl+Shift+U
+  handleKeyDown = (event) => {
+    // Check for Ctrl + Shift + U
+    if (event.ctrlKey && event.shiftKey && event.key.toLowerCase() === 'u') {
+      event.preventDefault(); // Prevent default browser behavior
+      this.openDropdown();
+    }
+  };
+
+  // Set up event listener on mount
+  componentDidMount() {
+    document.addEventListener('keydown', this.handleKeyDown);
+  }
+
+  // Clean up event listener on unmount
+  componentWillUnmount() {
+    document.removeEventListener('keydown', this.handleKeyDown);
+  }
+
+  // Handle menu close to sync state
+  handleMenuClose = () => {
+    this.setState({ menuIsOpen: false });
+  };
+
+  render() {
+    const { selectedOption, menuIsOpen } = this.state;
+
+    return (
+      <div className="container" style={{ padding: '20px', maxWidth: '400px' }}>
+        <h3>React-Select Dropdown</h3>
+        <Select
+          ref={this.selectRef}
+          value={selectedOption}
+          onChange={this.handleChange}
+          options={options}
+          placeholder="Select a role..."
+          menuIsOpen={menuIsOpen} // Control dropdown open state
+          onMenuClose={this.handleMenuClose} // Reset state when menu closes
+        />
+      </div>
+    );
+  }
+}
+
+export default App;
