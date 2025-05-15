@@ -207,3 +207,73 @@ const DraggableComponent = () => {
 
 export default DraggableComponent;
 
+
+
+
+
+
+
+
+
+
+
+import React, { useState } from 'react';
+import { AgGridReact } from 'ag-grid-react';
+import DateTimeFilter from './DateTimeFilter';
+import 'ag-grid-community/styles/ag-grid.css';
+import 'ag-grid-community/styles/ag-theme-alpine.css';
+
+const App = () => {
+  const [rowData] = useState([
+    { dateTime: '13/05/2025 23:59:59' },
+    { dateTime: '14/05/2025 12:30:00' },
+    // Add more data
+  ]);
+
+  const [columnDefs] = useState([
+    {
+      field: 'dateTime',
+      headerName: 'Date Time',
+      filter: 'agDateColumnFilter',
+      filterParams: {
+        defaultOption: 'inRange',
+        // Custom comparator for date-time filtering
+        comparator: (filterLocalDate, cellValue) => {
+          if (!cellValue) return -1;
+
+          // Parse cell value (string in DD/MM/YYYY HH:mm:ss) to Date
+          const [day, month, yearTime] = cellValue.split('/');
+          const [year, time] = yearTime.split(' ');
+          const [hours, minutes, seconds] = time.split(':');
+          const cellDate = new Date(year, month - 1, day, hours, minutes, seconds);
+
+          // Compare with filter date
+          const filterDate = new Date(filterLocalDate);
+
+          if (cellDate.getTime() === filterDate.getTime()) {
+            return 0;
+          }
+          return cellDate.getTime() < filterDate.getTime() ? -1 : 1;
+        },
+        // Register custom filter component
+        filterComponent: DateTimeFilter,
+      },
+    },
+  ]);
+
+  return (
+    <div className="ag-theme-alpine" style={{ height: 400, width: '100%' }}>
+      <AgGridReact
+        rowData={rowData}
+        columnDefs={columnDefs}
+        defaultColDef={{
+          sortable: true,
+          filter: true,
+          filterParams: { buttons: ['apply', 'clear', 'reset', 'cancel'] },
+        }}
+      />
+    </div>
+  );
+};
+
+export default App;
