@@ -1,0 +1,198 @@
+import React, { Component } from 'react';
+import { AgGridReact } from 'ag-grid-react';
+import 'ag-grid-community/styles/ag-grid.css';
+import 'ag-grid-community/styles/ag-theme-alpine.css';
+
+// Custom Date Filter for Interbank Settlement Date
+class DateFilter extends Component {
+  constructor(props) {
+    super(props);
+    this.state = {
+      filterDate: null,
+    };
+    this.onDateChange = this.onDateChange.bind(this);
+  }
+
+  onDateChange(event) {
+    const date = event.target.value;
+    this.setState({ filterDate: date }, () => {
+      this.props.filterChangedCallback();
+    });
+  }
+
+  isFilterActive() {
+    return this.state.filterDate !== null;
+  }
+
+  doesFilterPass(params) {
+    const cellValue = params.data[this.props.column.colDef.field];
+    if (!cellValue) return false;
+
+    const dateParts = cellValue.split('/');
+    const cellDate = new Date(
+      Number(dateParts[2]),
+      Number(dateParts[1]) - 1,
+      Number(dateParts[0])
+    );
+
+    const filterDate = new Date(this.state.filterDate);
+    return (
+      cellDate.getFullYear() === filterDate.getFullYear() &&
+      cellDate.getMonth() === filterDate.getMonth() &&
+      cellDate.getDate() === filterDate.getDate()
+    );
+  }
+
+  getModel() {
+    return this.state.filterDate
+      ? { filterType: 'date', date: this.state.filterDate }
+      : null;
+  }
+
+  setModel(model) {
+    this.setState({
+      filterDate: model ? model.date : null,
+    });
+  }
+
+  render() {
+    return (
+      <div style={{ padding: '10px' }}>
+        <label>Select Date:</label>
+        <input
+          type="date"
+          value={this.state.filterDate || ''}
+          onChange={this.onDateChange}
+          style={{ width: '100%' }}
+        />
+      </div>
+    );
+  }
+}
+
+// Custom Datetime Filter for Transaction Received Date Time
+class DatetimeFilter extends Component {
+  constructor(props) {
+    super(props);
+    this.state = {
+      filterDateTime: null,
+    };
+    this.onDateTimeChange = this.onDateTimeChange.bind(this);
+  }
+
+  onDateTimeChange(event) {
+    const dateTime = event.target.value;
+    this.setState({ filterDateTime: dateTime }, () => {
+      this.props.filterChangedCallback();
+    });
+  }
+
+  isFilterActive() {
+    return this.state.filterDateTime !== null;
+  }
+
+  doesFilterPass(params) {
+    const cellValue = params.data[this.props.column.colDef.field];
+    if (!cellValue) return false;
+
+    const [datePart, timePart] = cellValue.split(' ');
+    const dateParts = datePart.split('/');
+    const timeParts = timePart.split(':');
+    const [seconds] = timeParts[2].split('.');
+
+    const cellDateTime = new Date(
+      Number(dateParts[2]),
+      Number(dateParts[1]) - 1,
+      Number(dateParts[0]),
+      Number(timeParts[0]),
+      Number(timeParts[1]),
+      Number(seconds)
+    );
+
+    const filterDateTime = new Date(this.state.filterDateTime);
+    return (
+      cellDateTime.getFullYear() === filterDateTime.getFullYear() &&
+      cellDateTime.getMonth() === filterDateTime.getMonth() &&
+      cellDateTime.getDate() === filterDateTime.getDate() &&
+      cellDateTime.getHours() === filterDateTime.getHours() &&
+      cellDateTime.getMinutes() === filterDateTime.getMinutes()
+    );
+  }
+
+  getModel() {
+    return this.state.filterDateTime
+      ? { filterType: 'datetime', dateTime: this.state.filterDateTime }
+      : null;
+  }
+
+  setModel(model) {
+    this.setState({
+      filterDateTime: model ? model.dateTime : null,
+    });
+  }
+
+  render() {
+    return (
+      <div style={{ padding: '10px' }}>
+        <label>Select Date and Time:</label>
+        <input
+          type="datetime-local"
+          value={this.state.filterDateTime || ''}
+          onChange={this.onDateTimeChange}
+          style={{ width: '100%' }}
+        />
+      </div>
+    );
+  }
+}
+
+class GridWithDateAndDatetimeFilters extends Component {
+  constructor(props) {
+    super(props);
+    this.state = {
+      columnDefs: [
+        {
+          headerName: 'Interbank Settlement Date',
+          field: 'interbankSettlementDate',
+          filter: DateFilter, // Custom date filter
+        },
+        {
+          headerName: 'Transaction Received Date Time',
+          field: 'transactionReceivedDateTime',
+          filter: DatetimeFilter, // Custom datetime filter
+        },
+        { headerName: 'Transaction', field: 'transaction' },
+      ],
+      rowData: [
+        {
+          interbankSettlementDate: '06/05/2025',
+          transactionReceivedDateTime: '06/05/2025 15:48:45.234',
+          transaction: 'MANM',
+        },
+        {
+          interbankSettlementDate: '08/05/2025',
+          transactionReceivedDateTime: '08/05/2025 06:35:06.026',
+          transaction: 'MANM',
+        },
+      ],
+    };
+  }
+
+  render() {
+    return (
+      <div className="ag-theme-alpine" style={{ height: 400, width: '100%' }}>
+        <AgGridReact
+          columnDefs={this.state.columnDefs}
+          rowData={this.state.rowData}
+          defaultColDef={{
+            sortable: true,
+            filter: true,
+            resizable: true,
+          }}
+        />
+      </div>
+    );
+  }
+}
+
+export default GridWithDateAndDatetimeFilters;
