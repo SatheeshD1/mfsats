@@ -2,22 +2,42 @@ import React, { Component } from 'react';
 import { AgGridReact } from 'ag-grid-react';
 import 'ag-grid-community/styles/ag-grid.css';
 import 'ag-grid-community/styles/ag-theme-alpine.css';
+import Flatpickr from 'flatpickr';
+import 'flatpickr/dist/flatpickr.min.css';
 
-// Custom Date Filter for Interbank Settlement Date
+// Custom Date Filter for Interbank Settlement Date using Flatpickr
 class DateFilter extends Component {
   constructor(props) {
     super(props);
     this.state = {
       filterDate: null,
     };
-    this.onDateChange = this.onDateChange.bind(this);
+    this.dateInputRef = React.createRef();
+    this.flatpickrInstance = null;
   }
 
-  onDateChange(event) {
-    const date = event.target.value;
-    this.setState({ filterDate: date }, () => {
-      this.props.filterChangedCallback();
+  componentDidMount() {
+    // Initialize Flatpickr for date-only picker
+    this.flatpickrInstance = Flatpickr(this.dateInputRef.current, {
+      dateFormat: 'd/m/Y', // Match the format in your data (DD/MM/YYYY)
+      onChange: (selectedDates) => {
+        const date = selectedDates[0]
+          ? selectedDates[0].toLocaleDateString('en-GB', {
+              day: '2-digit',
+              month: '2-digit',
+              year: 'numeric',
+            }).split('/').join('/')
+          : null;
+        this.setState({ filterDate: date }, () => {
+          this.props.filterChangedCallback();
+        });
+      },
     });
+  }
+
+  componentWillUnmount() {
+    // Clean up Flatpickr instance
+    this.flatpickrInstance.destroy();
   }
 
   isFilterActive() {
@@ -35,7 +55,14 @@ class DateFilter extends Component {
       Number(dateParts[0])
     );
 
-    const filterDate = new Date(this.state.filterDate);
+    if (!this.state.filterDate) return true;
+    const filterDateParts = this.state.filterDate.split('/');
+    const filterDate = new Date(
+      Number(filterDateParts[2]),
+      Number(filterDateParts[1]) - 1,
+      Number(filterDateParts[0])
+    );
+
     return (
       cellDate.getFullYear() === filterDate.getFullYear() &&
       cellDate.getMonth() === filterDate.getMonth() &&
@@ -60,9 +87,9 @@ class DateFilter extends Component {
       <div style={{ padding: '10px' }}>
         <label>Select Date:</label>
         <input
-          type="date"
-          value={this.state.filterDate || ''}
-          onChange={this.onDateChange}
+          ref={this.dateInputRef}
+          type="text"
+          placeholder="DD/MM/YYYY"
           style={{ width: '100%' }}
         />
       </div>
@@ -70,21 +97,45 @@ class DateFilter extends Component {
   }
 }
 
-// Custom Datetime Filter for Transaction Received Date Time
+// Custom Datetime Filter for Transaction Received Date Time using Flatpickr
 class DatetimeFilter extends Component {
   constructor(props) {
     super(props);
     this.state = {
       filterDateTime: null,
     };
-    this.onDateTimeChange = this.onDateTimeChange.bind(this);
+    this.datetimeInputRef = React.createRef();
+    this.flatpickrInstance = null;
   }
 
-  onDateTimeChange(event) {
-    const dateTime = event.target.value;
-    this.setState({ filterDateTime: dateTime }, () => {
-      this.props.filterChangedCallback();
+  componentDidMount() {
+    // Initialize Flatpickr for datetime picker with 24-hour format
+    this.flatpickrInstance = Flatpickr(this.datetimeInputRef.current, {
+      enableTime: true,
+      dateFormat: 'd/m/Y H:i:S', // 24-hour format (e.g., 15:48:45)
+      time_24hr: true, // Enforce 24-hour format
+      onChange: (selectedDates) => {
+        const dateTime = selectedDates[0]
+          ? `${selectedDates[0].toLocaleDateString('en-GB', {
+              day: '2-digit',
+              month: '2-digit',
+              year: 'numeric',
+            }).split('/').join('/')} ${selectedDates[0].toLocaleTimeString('en-GB', {
+              hour: '2-digit',
+              minute: '2-digit',
+              second: '2-digit',
+            })}`
+          : null;
+        this.setState({ filterDateTime: dateTime }, () => {
+          this.props.filterChangedCallback();
+        });
+      },
     });
+  }
+
+  componentWillUnmount() {
+    // Clean up Flatpickr instance
+    this.flatpickrInstance.destroy();
   }
 
   isFilterActive() {
@@ -109,7 +160,20 @@ class DatetimeFilter extends Component {
       Number(seconds)
     );
 
-    const filterDateTime = new Date(this.state.filterDateTime);
+    if (!this.state.filterDateTime) return true;
+    const [filterDatePart, filterTimePart] = this.state.filterDateTime.split(' ');
+    const filterDateParts = filterDatePart.split('/');
+    const filterTimeParts = filterTimePart.split(':');
+
+    const filterDateTime = new Date(
+      Number(filterDateParts[2]),
+      Number(filterDateParts[1]) - 1,
+      Number(filterDateParts[0]),
+      Number(filterTimeParts[0]),
+      Number(filterTimeParts[1]),
+      Number(filterTimeParts[2])
+    );
+
     return (
       cellDateTime.getFullYear() === filterDateTime.getFullYear() &&
       cellDateTime.getMonth() === filterDateTime.getMonth() &&
@@ -136,9 +200,9 @@ class DatetimeFilter extends Component {
       <div style={{ padding: '10px' }}>
         <label>Select Date and Time:</label>
         <input
-          type="datetime-local"
-          value={this.state.filterDateTime || ''}
-          onChange={this.onDateTimeChange}
+          ref={this.datetimeInputRef}
+          type="text"
+          placeholder="DD/MM/YYYY HH:mm:ss"
           style={{ width: '100%' }}
         />
       </div>
@@ -154,12 +218,12 @@ class GridWithDateAndDatetimeFilters extends Component {
         {
           headerName: 'Interbank Settlement Date',
           field: 'interbankSettlementDate',
-          filter: DateFilter, // Custom date filter
+          filter: DateFilter, // Custom date filter with Flatpickr
         },
         {
           headerName: 'Transaction Received Date Time',
           field: 'transactionReceivedDateTime',
-          filter: DatetimeFilter, // Custom datetime filter
+          filter: DatetimeFilter, // Custom datetime filter with Flatpickr
         },
         { headerName: 'Transaction', field: 'transaction' },
       ],
