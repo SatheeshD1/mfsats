@@ -16,32 +16,12 @@ class DateFilter extends Component {
     this.flatpickrInstance = null;
   }
 
-  componentDidMount() {
-    // Initialize Flatpickr for date-only picker
-    if (this.dateInputRef.current) {
-      this.flatpickrInstance = Flatpickr(this.dateInputRef.current, {
-        dateFormat: 'd/m/Y', // Match the format in your data (DD/MM/YYYY)
-        onChange: (selectedDates) => {
-          const date = selectedDates[0]
-            ? selectedDates[0].toLocaleDateString('en-GB', {
-                day: '2-digit',
-                month: '2-digit',
-                year: 'numeric',
-              }).split('/').join('/')
-            : null;
-          this.setState({ filterDate: date }, () => {
-            this.props.filterChangedCallback();
-          });
-        },
-      });
-    }
-  }
-
-  componentDidUpdate() {
-    // Re-initialize Flatpickr if the input ref changes (ag-Grid might re-render the filter)
+  // ag-Grid lifecycle method called after the filter GUI is attached to the DOM
+  afterGuiAttached() {
+    // Initialize Flatpickr here to ensure the DOM element is available
     if (this.dateInputRef.current && !this.flatpickrInstance) {
       this.flatpickrInstance = Flatpickr(this.dateInputRef.current, {
-        dateFormat: 'd/m/Y',
+        dateFormat: 'd/m/Y', // Match the format in your data (DD/MM/YYYY)
         onChange: (selectedDates) => {
           const date = selectedDates[0]
             ? selectedDates[0].toLocaleDateString('en-GB', {
@@ -62,6 +42,7 @@ class DateFilter extends Component {
     // Clean up Flatpickr instance
     if (this.flatpickrInstance) {
       this.flatpickrInstance.destroy();
+      this.flatpickrInstance = null;
     }
   }
 
@@ -102,12 +83,12 @@ class DateFilter extends Component {
   }
 
   setModel(model) {
-    this.setState({
-      filterDate: model ? model.date : null,
+    const filterDate = model ? model.date : null;
+    this.setState({ filterDate }, () => {
+      if (this.flatpickrInstance) {
+        this.flatpickrInstance.setDate(filterDate);
+      }
     });
-    if (this.flatpickrInstance) {
-      this.flatpickrInstance.setDate(model ? model.date : null);
-    }
   }
 
   render() {
@@ -137,9 +118,10 @@ class DatetimeFilter extends Component {
     this.flatpickrInstance = null;
   }
 
-  componentDidMount() {
-    // Initialize Flatpickr for datetime picker with 24-hour format
-    if (this.datetimeInputRef.current) {
+  // ag-Grid lifecycle method called after the filter GUI is attached to the DOM
+  afterGuiAttached() {
+    // Initialize Flatpickr here to ensure the DOM element is available
+    if (this.datetimeInputRef.current && !this.flatpickrInstance) {
       this.flatpickrInstance = Flatpickr(this.datetimeInputRef.current, {
         enableTime: true,
         dateFormat: 'd/m/Y H:i:S', // 24-hour format (e.g., 06/05/2025 15:48:45)
@@ -165,38 +147,11 @@ class DatetimeFilter extends Component {
     }
   }
 
-  componentDidUpdate() {
-    // Re-initialize Flatpickr if the input ref changes
-    if (this.datetimeInputRef.current && !this.flatpickrInstance) {
-      this.flatpickrInstance = Flatpickr(this.datetimeInputRef.current, {
-        enableTime: true,
-        dateFormat: 'd/m/Y H:i:S',
-        time_24hr: true,
-        enableSeconds: true,
-        onChange: (selectedDates) => {
-          const dateTime = selectedDates[0]
-            ? `${selectedDates[0].toLocaleDateString('en-GB', {
-                day: '2-digit',
-                month: '2-digit',
-                year: 'numeric',
-              }).split('/').join('/')} ${selectedDates[0].toLocaleTimeString('en-GB', {
-                hour: '2-digit',
-                minute: '2-digit',
-                second: '2-digit',
-              })}`
-            : null;
-          this.setState({ filterDateTime: dateTime }, () => {
-            this.props.filterChangedCallback();
-          });
-        },
-      });
-    }
-  }
-
   componentWillUnmount() {
     // Clean up Flatpickr instance
     if (this.flatpickrInstance) {
       this.flatpickrInstance.destroy();
+      this.flatpickrInstance = null;
     }
   }
 
@@ -252,12 +207,12 @@ class DatetimeFilter extends Component {
   }
 
   setModel(model) {
-    this.setState({
-      filterDateTime: model ? model.dateTime : null,
+    const filterDateTime = model ? model.dateTime : null;
+    this.setState({ filterDateTime }, () => {
+      if (this.flatpickrInstance) {
+        this.flatpickrInstance.setDate(filterDateTime);
+      }
     });
-    if (this.flatpickrInstance) {
-      this.flatpickrInstance.setDate(model ? model.dateTime : null);
-    }
   }
 
   render() {
