@@ -20,21 +20,25 @@ class DateFilter extends Component {
   afterGuiAttached() {
     // Initialize Flatpickr here to ensure the DOM element is available
     if (this.dateInputRef.current && !this.flatpickrInstance) {
-      this.flatpickrInstance = Flatpickr(this.dateInputRef.current, {
-        dateFormat: 'd/m/Y', // Match the format in your data (DD/MM/YYYY)
-        onChange: (selectedDates) => {
-          const date = selectedDates[0]
-            ? selectedDates[0].toLocaleDateString('en-GB', {
-                day: '2-digit',
-                month: '2-digit',
-                year: 'numeric',
-              }).split('/').join('/')
-            : null;
-          this.setState({ filterDate: date }, () => {
-            this.props.filterChangedCallback();
-          });
-        },
-      });
+      try {
+        this.flatpickrInstance = Flatpickr(this.dateInputRef.current, {
+          dateFormat: 'd/m/Y', // Match the format in your data (DD/MM/YYYY)
+          onChange: (selectedDates) => {
+            const date = selectedDates[0]
+              ? selectedDates[0].toLocaleDateString('en-GB', {
+                  day: '2-digit',
+                  month: '2-digit',
+                  year: 'numeric',
+                }).split('/').join('/')
+              : null;
+            this.setState({ filterDate: date }, () => {
+              this.props.filterChangedCallback();
+            });
+          },
+        });
+      } catch (error) {
+        console.error('Error initializing Flatpickr for DateFilter:', error);
+      }
     }
   }
 
@@ -122,28 +126,32 @@ class DatetimeFilter extends Component {
   afterGuiAttached() {
     // Initialize Flatpickr here to ensure the DOM element is available
     if (this.datetimeInputRef.current && !this.flatpickrInstance) {
-      this.flatpickrInstance = Flatpickr(this.datetimeInputRef.current, {
-        enableTime: true,
-        dateFormat: 'd/m/Y H:i:S', // 24-hour format (e.g., 06/05/2025 15:48:45)
-        time_24hr: true, // Enforce 24-hour format
-        enableSeconds: true, // Allow seconds selection
-        onChange: (selectedDates) => {
-          const dateTime = selectedDates[0]
-            ? `${selectedDates[0].toLocaleDateString('en-GB', {
-                day: '2-digit',
-                month: '2-digit',
-                year: 'numeric',
-              }).split('/').join('/')} ${selectedDates[0].toLocaleTimeString('en-GB', {
-                hour: '2-digit',
-                minute: '2-digit',
-                second: '2-digit',
-              })}`
-            : null;
-          this.setState({ filterDateTime: dateTime }, () => {
-            this.props.filterChangedCallback();
-          });
-        },
-      });
+      try {
+        this.flatpickrInstance = Flatpickr(this.datetimeInputRef.current, {
+          enableTime: true,
+          dateFormat: 'd/m/Y H:i:S', // 24-hour format (e.g., 06/05/2025 15:48:45)
+          time_24hr: true, // Enforce 24-hour format
+          enableSeconds: true, // Allow seconds selection
+          onChange: (selectedDates) => {
+            const dateTime = selectedDates[0]
+              ? `${selectedDates[0].toLocaleDateString('en-GB', {
+                  day: '2-digit',
+                  month: '2-digit',
+                  year: 'numeric',
+                }).split('/').join('/')} ${selectedDates[0].toLocaleTimeString('en-GB', {
+                  hour: '2-digit',
+                  minute: '2-digit',
+                  second: '2-digit',
+                })}`
+              : null;
+            this.setState({ filterDateTime: dateTime }, () => {
+              this.props.filterChangedCallback();
+            });
+          },
+        });
+      } catch (error) {
+        console.error('Error initializing Flatpickr for DatetimeFilter:', error);
+      }
     }
   }
 
