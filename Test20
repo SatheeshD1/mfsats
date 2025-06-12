@@ -1,0 +1,17 @@
+import org.springframework.http.server.reactive.ServerHttpRequest;
+import org.springframework.http.server.reactive.ServerHttpRequestDecorator;
+import org.springframework.http.HttpHeaders;
+
+public class MutableServerHttpRequest extends ServerHttpRequestDecorator {
+    private final HttpHeaders mutableHeaders;
+
+    public MutableServerHttpRequest(ServerHttpRequest delegate) {
+        super(delegate);
+        this.mutableHeaders = new HttpHeaders(delegate.getHeaders());
+    }
+
+    @Override
+    public HttpHeaders getHeaders() {
+        return mutableHeaders;
+    }
+}
