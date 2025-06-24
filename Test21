@@ -1,10 +1,348 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, forwardRef, useImperativeHandle } from 'react';
 import Flatpickr from 'react-flatpickr';
 import 'flatpickr/dist/themes/material_green.css';
 
-// Mock AG Grid components for demonstration
+// Custom Date Filter Component for AG Grid
+const DateFilter = forwardRef((props, ref) => {
+  const [date, setDate] = useState(null);
+  const [filterType, setFilterType] = useState('equals');
+
+  useImperativeHandle(ref, () => {
+    return {
+      doesFilterPass(params) {
+        if (!date) return true;
+        
+        const cellValue = params.data[props.colDef.field];
+        if (!cellValue) return false;
+        
+        // Parse the cell date (assuming DD/MM/YYYY format)
+        const cellDate = new Date(cellValue.split('/').reverse().join('-'));
+        const filterDate = new Date(date);
+        
+        // Set time to 00:00:00 for date comparison
+        cellDate.setHours(0, 0, 0, 0);
+        filterDate.setHours(0, 0, 0, 0);
+        
+        switch (filterType) {
+          case 'equals':
+            return cellDate.getTime() === filterDate.getTime();
+          case 'greaterThan':
+            return cellDate.getTime() > filterDate.getTime();
+          case 'lessThan':
+            return cellDate.getTime() < filterDate.getTime();
+          default:
+            return true;
+        }
+      },
+      
+      isFilterActive() {
+        return date !== null;
+      },
+      
+      getModel() {
+        if (!this.isFilterActive()) return null;
+        return { date, filterType };
+      },
+      
+      setModel(model) {
+        if (model) {
+          setDate(model.date);
+          setFilterType(model.filterType);
+        } else {
+          setDate(null);
+          setFilterType('equals');
+        }
+      }
+    };
+  });
+
+  const onDateChange = (selectedDates) => {
+    setDate(selectedDates[0] || null);
+    props.filterChangedCallback();
+  };
+
+  const onFilterTypeChange = (e) => {
+    setFilterType(e.target.value);
+    props.filterChangedCallback();
+  };
+
+  return (
+    <div className="p-3 bg-white border border-gray-200 rounded shadow-lg" style={{ minWidth: '250px' }}>
+      <div className="mb-3">
+        <label className="block text-sm font-medium text-gray-700 mb-1">Filter Type</label>
+        <select 
+          value={filterType} 
+          onChange={onFilterTypeChange}
+          className="w-full px-2 py-1 border border-gray-300 rounded text-sm focus:outline-none focus:ring-1 focus:ring-blue-500"
+        >
+          <option value="equals">Equals</option>
+          <option value="greaterThan">Greater Than</option>
+          <option value="lessThan">Less Than</option>
+        </select>
+      </div>
+      
+      <div>
+        <label className="block text-sm font-medium text-gray-700 mb-1">Select Date</label>
+        <Flatpickr
+          value={date}
+          onChange={onDateChange}
+          options={{
+            dateFormat: "d/m/Y",
+            allowInput: true,
+            clickOpens: true,
+          }}
+          className="w-full px-2 py-1 border border-gray-300 rounded text-sm focus:outline-none focus:ring-1 focus:ring-blue-500"
+          placeholder="DD/MM/YYYY"
+        />
+      </div>
+      
+      <div className="mt-3 flex gap-2">
+        <button
+          onClick={() => {
+            setDate(null);
+            setFilterType('equals');
+            props.filterChangedCallback();
+          }}
+          className="px-3 py-1 text-xs bg-gray-500 text-white rounded hover:bg-gray-600"
+        >
+          Clear
+        </button>
+      </div>
+    </div>
+  );
+});
+
+// Custom DateTime Filter Component for AG Grid
+const DateTimeFilter = forwardRef((props, ref) => {
+  const [dateTime, setDateTime] = useState(null);
+  const [filterType, setFilterType] = useState('equals');
+
+  useImperativeHandle(ref, () => {
+    return {
+      doesFilterPass(params) {
+        if (!dateTime) return true;
+        
+        const cellValue = params.data[props.colDef.field];
+        if (!cellValue) return false;
+        
+        // Parse the cell datetime (assuming DD/MM/YYYY HH:MM:SS format)
+        const [datePart, timePart] = cellValue.split(' ');
+        const [day, month, year] = datePart.split('/');
+        const cellDate = new Date(`${year}-${month}-${day} ${timePart}`);
+        const filterDate = new Date(dateTime);
+        
+        switch (filterType) {
+          case 'equals':
+            return Math.abs(cellDate.getTime() - filterDate.getTime()) < 1000; // 1 second tolerance
+          case 'greaterThan':
+            return cellDate.getTime() > filterDate.getTime();
+          case 'lessThan':
+            return cellDate.getTime() < filterDate.getTime();
+          default:
+            return true;
+        }
+      },
+      
+      isFilterActive() {
+        return dateTime !== null;
+      },
+      
+      getModel() {
+        if (!this.isFilterActive()) return null;
+        return { dateTime, filterType };
+      },
+      
+      setModel(model) {
+        if (model) {
+          setDateTime(model.dateTime);
+          setFilterType(model.filterType);
+        } else {
+          setDateTime(null);
+          setFilterType('equals');
+        }
+      }
+    };
+  });
+
+  const onDateTimeChange = (selectedDates) => {
+    setDateTime(selectedDates[0] || null);
+    props.filterChangedCallback();
+  };
+
+  const onFilterTypeChange = (e) => {
+    setFilterType(e.target.value);
+    props.filterChangedCallback();
+  };
+
+  return (
+    <div className="p-3 bg-white border border-gray-200 rounded shadow-lg" style={{ minWidth: '280px' }}>
+      <div className="mb-3">
+        <label className="block text-sm font-medium text-gray-700 mb-1">Filter Type</label>
+        <select 
+          value={filterType} 
+          onChange={onFilterTypeChange}
+          className="w-full px-2 py-1 border border-gray-300 rounded text-sm focus:outline-none focus:ring-1 focus:ring-blue-500"
+        >
+          <option value="equals">Equals</option>
+          <option value="greaterThan">After</option>
+          <option value="lessThan">Before</option>
+        </select>
+      </div>
+      
+      <div>
+        <label className="block text-sm font-medium text-gray-700 mb-1">Select Date & Time</label>
+        <Flatpickr
+          value={dateTime}
+          onChange={onDateTimeChange}
+          options={{
+            enableTime: true,
+            dateFormat: "d/m/Y H:i:S",
+            time_24hr: true,
+            allowInput: true,
+            clickOpens: true,
+          }}
+          className="w-full px-2 py-1 border border-gray-300 rounded text-sm focus:outline-none focus:ring-1 focus:ring-blue-500"
+          placeholder="DD/MM/YYYY HH:MM:SS"
+        />
+      </div>
+      
+      <div className="mt-3 flex gap-2">
+        <button
+          onClick={() => {
+            setDateTime(null);
+            setFilterType('equals');
+            props.filterChangedCallback();
+          }}
+          className="px-3 py-1 text-xs bg-gray-500 text-white rounded hover:bg-gray-600"
+        >
+          Clear
+        </button>
+      </div>
+    </div>
+  );
+});
+
+// Custom Time-only Filter Component
+const TimeFilter = forwardRef((props, ref) => {
+  const [time, setTime] = useState(null);
+  const [filterType, setFilterType] = useState('equals');
+
+  useImperativeHandle(ref, () => {
+    return {
+      doesFilterPass(params) {
+        if (!time) return true;
+        
+        const cellValue = params.data[props.colDef.field];
+        if (!cellValue) return false;
+        
+        // Extract time from cell value (assuming it contains time)
+        let cellTime;
+        if (cellValue.includes(' ')) {
+          cellTime = cellValue.split(' ')[1]; // Get time part from "DD/MM/YYYY HH:MM:SS"
+        } else {
+          cellTime = cellValue; // Assume it's already time format "HH:MM:SS"
+        }
+        
+        const filterTime = time.toTimeString().split(' ')[0]; // Get "HH:MM:SS" format
+        
+        switch (filterType) {
+          case 'equals':
+            return cellTime === filterTime;
+          case 'greaterThan':
+            return cellTime > filterTime;
+          case 'lessThan':
+            return cellTime < filterTime;
+          default:
+            return true;
+        }
+      },
+      
+      isFilterActive() {
+        return time !== null;
+      },
+      
+      getModel() {
+        if (!this.isFilterActive()) return null;
+        return { time, filterType };
+      },
+      
+      setModel(model) {
+        if (model) {
+          setTime(model.time);
+          setFilterType(model.filterType);
+        } else {
+          setTime(null);
+          setFilterType('equals');
+        }
+      }
+    };
+  });
+
+  const onTimeChange = (selectedDates) => {
+    setTime(selectedDates[0] || null);
+    props.filterChangedCallback();
+  };
+
+  const onFilterTypeChange = (e) => {
+    setFilterType(e.target.value);
+    props.filterChangedCallback();
+  };
+
+  return (
+    <div className="p-3 bg-white border border-gray-200 rounded shadow-lg" style={{ minWidth: '250px' }}>
+      <div className="mb-3">
+        <label className="block text-sm font-medium text-gray-700 mb-1">Filter Type</label>
+        <select 
+          value={filterType} 
+          onChange={onFilterTypeChange}
+          className="w-full px-2 py-1 border border-gray-300 rounded text-sm focus:outline-none focus:ring-1 focus:ring-blue-500"
+        >
+          <option value="equals">Equals</option>
+          <option value="greaterThan">After</option>
+          <option value="lessThan">Before</option>
+        </select>
+      </div>
+      
+      <div>
+        <label className="block text-sm font-medium text-gray-700 mb-1">Select Time</label>
+        <Flatpickr
+          value={time}
+          onChange={onTimeChange}
+          options={{
+            enableTime: true,
+            noCalendar: true,
+            dateFormat: "H:i:S",
+            time_24hr: true,
+            defaultHour: 0,
+            defaultMinute: 0,
+            minuteIncrement: 1
+          }}
+          className="w-full px-2 py-1 border border-gray-300 rounded text-sm focus:outline-none focus:ring-1 focus:ring-blue-500"
+          placeholder="00:00:00"
+        />
+      </div>
+      
+      <div className="mt-3 flex gap-2">
+        <button
+          onClick={() => {
+            setTime(null);
+            setFilterType('equals');
+            props.filterChangedCallback();
+          }}
+          className="px-3 py-1 text-xs bg-gray-500 text-white rounded hover:bg-gray-600"
+        >
+          Clear
+        </button>
+      </div>
+    </div>
+  );
+});
+
+// Mock AG Grid components with enhanced filtering
 const AgGridReact = ({ columnDefs, rowData, onGridReady, gridOptions, ...props }) => {
   const [selectedRows, setSelectedRows] = useState([]);
+  const [filters, setFilters] = useState({});
+  const [activeFilter, setActiveFilter] = useState(null);
   
   const handleRowSelect = (rowIndex) => {
     const newSelection = selectedRows.includes(rowIndex) 
@@ -13,9 +351,34 @@ const AgGridReact = ({ columnDefs, rowData, onGridReady, gridOptions, ...props }
     setSelectedRows(newSelection);
   };
 
+  const applyFilters = (data) => {
+    return data.filter(row => {
+      return Object.keys(filters).every(field => {
+        const filter = filters[field];
+        if (!filter || !filter.isFilterActive()) return true;
+        return filter.doesFilterPass({ data: row });
+      });
+    });
+  };
+
+  const filteredData = applyFilters(rowData);
+
+  const handleFilterClick = (field) => {
+    setActiveFilter(activeFilter === field ? null : field);
+  };
+
+  const registerFilter = (field, filterRef) => {
+    if (filterRef) {
+      setFilters(prev => ({
+        ...prev,
+        [field]: filterRef
+      }));
+    }
+  };
+
   return (
     <div className="ag-theme-alpine" style={{ height: '600px', width: '100%' }}>
-      <div className="bg-white border border-gray-300 rounded">
+      <div className="bg-white border border-gray-300 rounded relative">
         {/* Header */}
         <div className="bg-gray-100 border-b border-gray-300 flex">
           <div className="w-12 p-2 border-r border-gray-300 text-center">
@@ -24,16 +387,40 @@ const AgGridReact = ({ columnDefs, rowData, onGridReady, gridOptions, ...props }
           {columnDefs.map((col, index) => (
             <div 
               key={index} 
-              className="flex-1 p-2 border-r border-gray-300 font-medium text-sm"
+              className="flex-1 border-r border-gray-300 relative"
               style={{ minWidth: col.width || 150 }}
             >
-              {col.headerName}
+              <div className="p-2 font-medium text-sm flex items-center justify-between">
+                <span>{col.headerName}</span>
+                {col.filter && (
+                  <button
+                    onClick={() => handleFilterClick(col.field)}
+                    className="ml-2 text-blue-600 hover:text-blue-800"
+                  >
+                    🔽
+                  </button>
+                )}
+              </div>
+              
+              {/* Filter dropdown */}
+              {activeFilter === col.field && col.filter && (
+                <div className="absolute top-full left-0 z-50 mt-1">
+                  <col.filter
+                    ref={(ref) => registerFilter(col.field, ref)}
+                    colDef={col}
+                    filterChangedCallback={() => {
+                      // Trigger re-render
+                      setFilters(prev => ({ ...prev }));
+                    }}
+                  />
+                </div>
+              )}
             </div>
           ))}
         </div>
         
         {/* Rows */}
-        {rowData.map((row, rowIndex) => (
+        {filteredData.map((row, rowIndex) => (
           <div key={rowIndex} className="flex border-b border-gray-200 hover:bg-blue-50">
             <div className="w-12 p-2 border-r border-gray-300 text-center">
               <input 
@@ -57,31 +444,17 @@ const AgGridReact = ({ columnDefs, rowData, onGridReady, gridOptions, ...props }
         
         {/* Footer */}
         <div className="bg-gray-50 p-2 text-sm text-gray-600 border-t">
-          Rows: {rowData.length} | Matching Records: {rowData.length}
+          Rows: {filteredData.length} | Total Records: {rowData.length}
         </div>
       </div>
-    </div>
-  );
-};
-
-// Custom Date/Time Filter Component using react-flatpickr
-const DateTimeFilter = ({ label, value, onChange, enableTime = false, dateFormat = "d/m/Y" }) => {
-  return (
-    <div className="flex flex-col">
-      <label className="text-sm font-medium text-gray-700 mb-1">{label}</label>
-      <Flatpickr
-        value={value}
-        onChange={onChange}
-        options={{
-          enableTime: enableTime,
-          dateFormat: enableTime ? "d/m/Y H:i:S" : dateFormat,
-          time_24hr: true,
-          allowInput: true,
-          clickOpens: true,
-        }}
-        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-        placeholder={enableTime ? "DD/MM/YYYY HH:MM:SS" : "DD/MM/YYYY"}
-      />
+      
+      {/* Click outside to close filters */}
+      {activeFilter && (
+        <div 
+          className="fixed inset-0 z-40" 
+          onClick={() => setActiveFilter(null)}
+        />
+      )}
     </div>
   );
 };
@@ -92,77 +465,54 @@ const AGGridWithFlatpickr = () => {
     {
       uetr: '2c414e0-160a-4216-a5f5-4d1326434e8c',
       interbankSettlementDate: '23/06/2025',
-      transactionReceivedDateTime: '23/06/2025 15:09:41:358',
-      settlementTillTime: ''
+      transactionReceivedDateTime: '23/06/2025 15:09:41',
+      settlementTillTime: '16:00:00'
     },
     {
       uetr: 'e8efb39-ff9a-4a1a-8ac5-95c5adb01195',
       interbankSettlementDate: '23/06/2025',
-      transactionReceivedDateTime: '23/06/2025 14:27:27:594',
-      settlementTillTime: ''
+      transactionReceivedDateTime: '23/06/2025 14:27:27',
+      settlementTillTime: '15:30:00'
     },
     {
       uetr: 'e8efb39-ff9a-4a1a-8ac5-95c5adb01210',
-      interbankSettlementDate: '23/06/2025',
-      transactionReceivedDateTime: '23/06/2025 15:16:22:150',
-      settlementTillTime: ''
+      interbankSettlementDate: '24/06/2025',
+      transactionReceivedDateTime: '24/06/2025 15:16:22',
+      settlementTillTime: '17:00:00'
     },
     {
       uetr: 'e8efb39-ff9a-4a1a-8ac5-95c5adb01211',
-      interbankSettlementDate: '23/06/2025',
-      transactionReceivedDateTime: '23/06/2025 11:34:21:120',
-      settlementTillTime: ''
+      interbankSettlementDate: '24/06/2025',
+      transactionReceivedDateTime: '24/06/2025 11:34:21',
+      settlementTillTime: '12:00:00'
     },
     {
       uetr: 'e8efb39-ff9a-4a1a-8ac5-95c5adb01213',
-      interbankSettlementDate: '23/06/2025',
-      transactionReceivedDateTime: '23/06/2025 16:45:18:552',
-      settlementTillTime: ''
+      interbankSettlementDate: '25/06/2025',
+      transactionReceivedDateTime: '25/06/2025 16:45:18',
+      settlementTillTime: '18:00:00'
     },
     {
       uetr: '3ab86704-0494-4169-8d60-2166bf5266ee',
-      interbankSettlementDate: '23/06/2025',
-      transactionReceivedDateTime: '23/06/2025 09:22:15:126',
-      settlementTillTime: ''
+      interbankSettlementDate: '25/06/2025',
+      transactionReceivedDateTime: '25/06/2025 09:22:15',
+      settlementTillTime: '10:30:00'
     },
     {
       uetr: '7e65e1ce-a5b4-48d7-826f-04274ace6974',
-      interbankSettlementDate: '23/06/2025',
-      transactionReceivedDateTime: '23/06/2025 13:18:44:801',
-      settlementTillTime: ''
+      interbankSettlementDate: '26/06/2025',
+      transactionReceivedDateTime: '26/06/2025 13:18:44',
+      settlementTillTime: '14:00:00'
     },
     {
       uetr: 'ab6c95c9-f001-460d-bd41-556b0fc9de46',
-      interbankSettlementDate: '23/06/2025',
-      transactionReceivedDateTime: '23/06/2025 12:33:29:844',
-      settlementTillTime: ''
-    },
-    {
-      uetr: 'd416df38-4475-4210-8b9a-e694c2371167',
-      interbankSettlementDate: '23/06/2025',
-      transactionReceivedDateTime: '23/06/2025 14:56:31:953',
-      settlementTillTime: ''
-    },
-    {
-      uetr: 'f2d4b011-0f7a-4805-ab3d-c37eae40ca72',
-      interbankSettlementDate: '23/06/2025',
-      transactionReceivedDateTime: '23/06/2025 10:41:27:404',
-      settlementTillTime: ''
-    },
-    {
-      uetr: '6fcbd54a-d427-474f-985d-eee40b3089c5',
-      interbankSettlementDate: '23/06/2025',
-      transactionReceivedDateTime: '23/06/2025 11:29:33:115',
-      settlementTillTime: ''
+      interbankSettlementDate: '26/06/2025',
+      transactionReceivedDateTime: '26/06/2025 12:33:29',
+      settlementTillTime: '13:45:00'
     }
   ]);
 
-  // Filter states
-  const [interbankSettlementFilter, setInterbankSettlementFilter] = useState('');
-  const [transactionReceivedFilter, setTransactionReceivedFilter] = useState('');
-  const [settlementTillFilter, setSettlementTillFilter] = useState('');
-
-  // Column definitions
+  // Column definitions with integrated filters
   const columnDefs = useMemo(() => [
     {
       headerName: 'UETR',
@@ -175,12 +525,14 @@ const AGGridWithFlatpickr = () => {
     {
       headerName: 'Interbank Settlement Date',
       field: 'interbankSettlementDate',
-      width: 200
+      width: 220,
+      filter: DateFilter
     },
     {
       headerName: 'Transaction Received Date Time',
       field: 'transactionReceivedDateTime',
-      width: 250,
+      width: 280,
+      filter: DateTimeFilter,
       cellRenderer: ({ value }) => (
         <span className="font-mono text-xs">{value}</span>
       )
@@ -188,127 +540,37 @@ const AGGridWithFlatpickr = () => {
     {
       headerName: 'Settlement Till Time',
       field: 'settlementTillTime',
-      width: 200
+      width: 200,
+      filter: TimeFilter,
+      cellRenderer: ({ value }) => (
+        <span className="font-mono text-xs">{value}</span>
+      )
     }
   ], []);
-
-  // Filter the data based on date filters
-  const filteredData = useMemo(() => {
-    return rowData.filter(row => {
-      let matchesFilters = true;
-
-      if (interbankSettlementFilter) {
-        const filterDate = new Date(interbankSettlementFilter).toLocaleDateString('en-GB');
-        matchesFilters = matchesFilters && row.interbankSettlementDate === filterDate;
-      }
-
-      if (transactionReceivedFilter) {
-        const filterDate = new Date(transactionReceivedFilter).toLocaleDateString('en-GB');
-        const rowDate = row.transactionReceivedDateTime.split(' ')[0];
-        matchesFilters = matchesFilters && rowDate === filterDate;
-      }
-
-      if (settlementTillFilter) {
-        const filterDate = new Date(settlementTillFilter).toLocaleDateString('en-GB');
-        matchesFilters = matchesFilters && row.settlementTillTime.includes(filterDate);
-      }
-
-      return matchesFilters;
-    });
-  }, [rowData, interbankSettlementFilter, transactionReceivedFilter, settlementTillFilter]);
 
   return (
     <div className="p-6 bg-gray-50 min-h-screen">
       <div className="max-w-7xl mx-auto">
-        <h1 className="text-2xl font-bold text-gray-900 mb-6">Transaction Data with Date/Time Filters</h1>
+        <h1 className="text-2xl font-bold text-gray-900 mb-6">AG Grid with Integrated Flatpickr Filters</h1>
         
-        {/* Filter Controls */}
-        <div className="bg-white p-6 rounded-lg shadow-md mb-6">
-          <h2 className="text-lg font-semibold text-gray-800 mb-4">Date/Time Filters</h2>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <DateTimeFilter
-              label="Interbank Settlement Date"
-              value={interbankSettlementFilter}
-              onChange={(date) => setInterbankSettlementFilter(date[0] || '')}
-            />
-            <DateTimeFilter
-              label="Transaction Received Date Time"
-              value={transactionReceivedFilter}
-              onChange={(date) => setTransactionReceivedFilter(date[0] || '')}
-              enableTime={true}
-            />
-            <DateTimeFilter
-              label="Settlement Till Time"
-              value={settlementTillFilter}
-              onChange={(date) => setSettlementTillFilter(date[0] || '')}
-              enableTime={true}
-            />
+        <div className="bg-white rounded-lg shadow-md p-6">
+          <div className="mb-4 text-sm text-gray-600">
+            <p>Click the dropdown arrows (🔽) in the column headers to open the date/time filters.</p>
+            <p>Each column has a different filter type:</p>
+            <ul className="list-disc list-inside mt-2 space-y-1">
+              <li><strong>Interbank Settlement Date:</strong> Date-only filter</li>
+              <li><strong>Transaction Received Date Time:</strong> Date and time filter</li>
+              <li><strong>Settlement Till Time:</strong> Time-only filter</li>
+            </ul>
           </div>
           
-          {/* Clear Filters Button */}
-          <div className="mt-4">
-            <button
-              onClick={() => {
-                setInterbankSettlementFilter('');
-                setTransactionReceivedFilter('');
-                setSettlementTillFilter('');
-              }}
-              className="px-4 py-2 bg-gray-500 text-white rounded hover:bg-gray-600 transition-colors"
-            >
-              Clear All Filters
-            </button>
-          </div>
-        </div>
-
-        {/* AG Grid */}
-        <div className="bg-white rounded-lg shadow-md p-6">
           <AgGridReact
             columnDefs={columnDefs}
-            rowData={filteredData}
+            rowData={rowData}
             rowSelection="multiple"
             suppressRowClickSelection={true}
             animateRows={true}
-            pagination={true}
-            paginationPageSize={20}
           />
-        </div>
-
-        {/* Additional Controls - Time Picker Example */}
-        <div className="bg-white p-6 rounded-lg shadow-md mt-6">
-          <h2 className="text-lg font-semibold text-gray-800 mb-4">Time Only Picker (like in your screenshot)</h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div>
-              <label className="text-sm font-medium text-gray-700 mb-1 block">Time Selection</label>
-              <Flatpickr
-                options={{
-                  enableTime: true,
-                  noCalendar: true,
-                  dateFormat: "H:i:S",
-                  time_24hr: true,
-                  defaultHour: 0,
-                  defaultMinute: 0,
-                  minuteIncrement: 1
-                }}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                placeholder="00:00:00"
-              />
-            </div>
-            
-            <div>
-              <label className="text-sm font-medium text-gray-700 mb-1 block">Date and Time Combined</label>
-              <Flatpickr
-                options={{
-                  enableTime: true,
-                  dateFormat: "d/m/Y H:i:S",
-                  time_24hr: true,
-                  allowInput: true,
-                  defaultDate: new Date()
-                }}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                placeholder="DD/MM/YYYY HH:MM:SS"
-              />
-            </div>
-          </div>
         </div>
       </div>
     </div>
