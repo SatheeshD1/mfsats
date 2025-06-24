@@ -1,0 +1,318 @@
+import React, { useState, useEffect, useMemo } from 'react';
+import Flatpickr from 'react-flatpickr';
+import 'flatpickr/dist/themes/material_green.css';
+
+// Mock AG Grid components for demonstration
+const AgGridReact = ({ columnDefs, rowData, onGridReady, gridOptions, ...props }) => {
+  const [selectedRows, setSelectedRows] = useState([]);
+  
+  const handleRowSelect = (rowIndex) => {
+    const newSelection = selectedRows.includes(rowIndex) 
+      ? selectedRows.filter(i => i !== rowIndex)
+      : [...selectedRows, rowIndex];
+    setSelectedRows(newSelection);
+  };
+
+  return (
+    <div className="ag-theme-alpine" style={{ height: '600px', width: '100%' }}>
+      <div className="bg-white border border-gray-300 rounded">
+        {/* Header */}
+        <div className="bg-gray-100 border-b border-gray-300 flex">
+          <div className="w-12 p-2 border-r border-gray-300 text-center">
+            <input type="checkbox" className="w-4 h-4" />
+          </div>
+          {columnDefs.map((col, index) => (
+            <div 
+              key={index} 
+              className="flex-1 p-2 border-r border-gray-300 font-medium text-sm"
+              style={{ minWidth: col.width || 150 }}
+            >
+              {col.headerName}
+            </div>
+          ))}
+        </div>
+        
+        {/* Rows */}
+        {rowData.map((row, rowIndex) => (
+          <div key={rowIndex} className="flex border-b border-gray-200 hover:bg-blue-50">
+            <div className="w-12 p-2 border-r border-gray-300 text-center">
+              <input 
+                type="checkbox" 
+                className="w-4 h-4"
+                checked={selectedRows.includes(rowIndex)}
+                onChange={() => handleRowSelect(rowIndex)}
+              />
+            </div>
+            {columnDefs.map((col, colIndex) => (
+              <div 
+                key={colIndex} 
+                className="flex-1 p-2 border-r border-gray-300 text-sm"
+                style={{ minWidth: col.width || 150 }}
+              >
+                {col.cellRenderer ? col.cellRenderer({ value: row[col.field] }) : row[col.field]}
+              </div>
+            ))}
+          </div>
+        ))}
+        
+        {/* Footer */}
+        <div className="bg-gray-50 p-2 text-sm text-gray-600 border-t">
+          Rows: {rowData.length} | Matching Records: {rowData.length}
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// Custom Date/Time Filter Component using react-flatpickr
+const DateTimeFilter = ({ label, value, onChange, enableTime = false, dateFormat = "d/m/Y" }) => {
+  return (
+    <div className="flex flex-col">
+      <label className="text-sm font-medium text-gray-700 mb-1">{label}</label>
+      <Flatpickr
+        value={value}
+        onChange={onChange}
+        options={{
+          enableTime: enableTime,
+          dateFormat: enableTime ? "d/m/Y H:i:S" : dateFormat,
+          time_24hr: true,
+          allowInput: true,
+          clickOpens: true,
+        }}
+        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+        placeholder={enableTime ? "DD/MM/YYYY HH:MM:SS" : "DD/MM/YYYY"}
+      />
+    </div>
+  );
+};
+
+const AGGridWithFlatpickr = () => {
+  // Sample data matching your screenshot structure
+  const [rowData, setRowData] = useState([
+    {
+      uetr: '2c414e0-160a-4216-a5f5-4d1326434e8c',
+      interbankSettlementDate: '23/06/2025',
+      transactionReceivedDateTime: '23/06/2025 15:09:41:358',
+      settlementTillTime: ''
+    },
+    {
+      uetr: 'e8efb39-ff9a-4a1a-8ac5-95c5adb01195',
+      interbankSettlementDate: '23/06/2025',
+      transactionReceivedDateTime: '23/06/2025 14:27:27:594',
+      settlementTillTime: ''
+    },
+    {
+      uetr: 'e8efb39-ff9a-4a1a-8ac5-95c5adb01210',
+      interbankSettlementDate: '23/06/2025',
+      transactionReceivedDateTime: '23/06/2025 15:16:22:150',
+      settlementTillTime: ''
+    },
+    {
+      uetr: 'e8efb39-ff9a-4a1a-8ac5-95c5adb01211',
+      interbankSettlementDate: '23/06/2025',
+      transactionReceivedDateTime: '23/06/2025 11:34:21:120',
+      settlementTillTime: ''
+    },
+    {
+      uetr: 'e8efb39-ff9a-4a1a-8ac5-95c5adb01213',
+      interbankSettlementDate: '23/06/2025',
+      transactionReceivedDateTime: '23/06/2025 16:45:18:552',
+      settlementTillTime: ''
+    },
+    {
+      uetr: '3ab86704-0494-4169-8d60-2166bf5266ee',
+      interbankSettlementDate: '23/06/2025',
+      transactionReceivedDateTime: '23/06/2025 09:22:15:126',
+      settlementTillTime: ''
+    },
+    {
+      uetr: '7e65e1ce-a5b4-48d7-826f-04274ace6974',
+      interbankSettlementDate: '23/06/2025',
+      transactionReceivedDateTime: '23/06/2025 13:18:44:801',
+      settlementTillTime: ''
+    },
+    {
+      uetr: 'ab6c95c9-f001-460d-bd41-556b0fc9de46',
+      interbankSettlementDate: '23/06/2025',
+      transactionReceivedDateTime: '23/06/2025 12:33:29:844',
+      settlementTillTime: ''
+    },
+    {
+      uetr: 'd416df38-4475-4210-8b9a-e694c2371167',
+      interbankSettlementDate: '23/06/2025',
+      transactionReceivedDateTime: '23/06/2025 14:56:31:953',
+      settlementTillTime: ''
+    },
+    {
+      uetr: 'f2d4b011-0f7a-4805-ab3d-c37eae40ca72',
+      interbankSettlementDate: '23/06/2025',
+      transactionReceivedDateTime: '23/06/2025 10:41:27:404',
+      settlementTillTime: ''
+    },
+    {
+      uetr: '6fcbd54a-d427-474f-985d-eee40b3089c5',
+      interbankSettlementDate: '23/06/2025',
+      transactionReceivedDateTime: '23/06/2025 11:29:33:115',
+      settlementTillTime: ''
+    }
+  ]);
+
+  // Filter states
+  const [interbankSettlementFilter, setInterbankSettlementFilter] = useState('');
+  const [transactionReceivedFilter, setTransactionReceivedFilter] = useState('');
+  const [settlementTillFilter, setSettlementTillFilter] = useState('');
+
+  // Column definitions
+  const columnDefs = useMemo(() => [
+    {
+      headerName: 'UETR',
+      field: 'uetr',
+      width: 280,
+      cellRenderer: ({ value }) => (
+        <span className="font-mono text-xs">{value}</span>
+      )
+    },
+    {
+      headerName: 'Interbank Settlement Date',
+      field: 'interbankSettlementDate',
+      width: 200
+    },
+    {
+      headerName: 'Transaction Received Date Time',
+      field: 'transactionReceivedDateTime',
+      width: 250,
+      cellRenderer: ({ value }) => (
+        <span className="font-mono text-xs">{value}</span>
+      )
+    },
+    {
+      headerName: 'Settlement Till Time',
+      field: 'settlementTillTime',
+      width: 200
+    }
+  ], []);
+
+  // Filter the data based on date filters
+  const filteredData = useMemo(() => {
+    return rowData.filter(row => {
+      let matchesFilters = true;
+
+      if (interbankSettlementFilter) {
+        const filterDate = new Date(interbankSettlementFilter).toLocaleDateString('en-GB');
+        matchesFilters = matchesFilters && row.interbankSettlementDate === filterDate;
+      }
+
+      if (transactionReceivedFilter) {
+        const filterDate = new Date(transactionReceivedFilter).toLocaleDateString('en-GB');
+        const rowDate = row.transactionReceivedDateTime.split(' ')[0];
+        matchesFilters = matchesFilters && rowDate === filterDate;
+      }
+
+      if (settlementTillFilter) {
+        const filterDate = new Date(settlementTillFilter).toLocaleDateString('en-GB');
+        matchesFilters = matchesFilters && row.settlementTillTime.includes(filterDate);
+      }
+
+      return matchesFilters;
+    });
+  }, [rowData, interbankSettlementFilter, transactionReceivedFilter, settlementTillFilter]);
+
+  return (
+    <div className="p-6 bg-gray-50 min-h-screen">
+      <div className="max-w-7xl mx-auto">
+        <h1 className="text-2xl font-bold text-gray-900 mb-6">Transaction Data with Date/Time Filters</h1>
+        
+        {/* Filter Controls */}
+        <div className="bg-white p-6 rounded-lg shadow-md mb-6">
+          <h2 className="text-lg font-semibold text-gray-800 mb-4">Date/Time Filters</h2>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <DateTimeFilter
+              label="Interbank Settlement Date"
+              value={interbankSettlementFilter}
+              onChange={(date) => setInterbankSettlementFilter(date[0] || '')}
+            />
+            <DateTimeFilter
+              label="Transaction Received Date Time"
+              value={transactionReceivedFilter}
+              onChange={(date) => setTransactionReceivedFilter(date[0] || '')}
+              enableTime={true}
+            />
+            <DateTimeFilter
+              label="Settlement Till Time"
+              value={settlementTillFilter}
+              onChange={(date) => setSettlementTillFilter(date[0] || '')}
+              enableTime={true}
+            />
+          </div>
+          
+          {/* Clear Filters Button */}
+          <div className="mt-4">
+            <button
+              onClick={() => {
+                setInterbankSettlementFilter('');
+                setTransactionReceivedFilter('');
+                setSettlementTillFilter('');
+              }}
+              className="px-4 py-2 bg-gray-500 text-white rounded hover:bg-gray-600 transition-colors"
+            >
+              Clear All Filters
+            </button>
+          </div>
+        </div>
+
+        {/* AG Grid */}
+        <div className="bg-white rounded-lg shadow-md p-6">
+          <AgGridReact
+            columnDefs={columnDefs}
+            rowData={filteredData}
+            rowSelection="multiple"
+            suppressRowClickSelection={true}
+            animateRows={true}
+            pagination={true}
+            paginationPageSize={20}
+          />
+        </div>
+
+        {/* Additional Controls - Time Picker Example */}
+        <div className="bg-white p-6 rounded-lg shadow-md mt-6">
+          <h2 className="text-lg font-semibold text-gray-800 mb-4">Time Only Picker (like in your screenshot)</h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div>
+              <label className="text-sm font-medium text-gray-700 mb-1 block">Time Selection</label>
+              <Flatpickr
+                options={{
+                  enableTime: true,
+                  noCalendar: true,
+                  dateFormat: "H:i:S",
+                  time_24hr: true,
+                  defaultHour: 0,
+                  defaultMinute: 0,
+                  minuteIncrement: 1
+                }}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                placeholder="00:00:00"
+              />
+            </div>
+            
+            <div>
+              <label className="text-sm font-medium text-gray-700 mb-1 block">Date and Time Combined</label>
+              <Flatpickr
+                options={{
+                  enableTime: true,
+                  dateFormat: "d/m/Y H:i:S",
+                  time_24hr: true,
+                  allowInput: true,
+                  defaultDate: new Date()
+                }}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                placeholder="DD/MM/YYYY HH:MM:SS"
+              />
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default AGGridWithFlatpickr;
