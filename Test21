@@ -57,13 +57,19 @@ const DateFilter = forwardRef((props, ref) => {
   });
 
   const onDateChange = (selectedDates) => {
-    setDate(selectedDates[0] || null);
-    props.filterChangedCallback();
+    const newDate = selectedDates[0] || null;
+    if (newDate !== date) {
+      setDate(newDate);
+      props.filterChangedCallback();
+    }
   };
 
   const onFilterTypeChange = (e) => {
-    setFilterType(e.target.value);
-    props.filterChangedCallback();
+    const newType = e.target.value;
+    if (newType !== filterType) {
+      setFilterType(newType);
+      props.filterChangedCallback();
+    }
   };
 
   return (
@@ -165,13 +171,19 @@ const DateTimeFilter = forwardRef((props, ref) => {
   });
 
   const onDateTimeChange = (selectedDates) => {
-    setDateTime(selectedDates[0] || null);
-    props.filterChangedCallback();
+    const newDateTime = selectedDates[0] || null;
+    if (newDateTime !== dateTime) {
+      setDateTime(newDateTime);
+      props.filterChangedCallback();
+    }
   };
 
   const onFilterTypeChange = (e) => {
-    setFilterType(e.target.value);
-    props.filterChangedCallback();
+    const newType = e.target.value;
+    if (newType !== filterType) {
+      setFilterType(newType);
+      props.filterChangedCallback();
+    }
   };
 
   return (
@@ -279,13 +291,19 @@ const TimeFilter = forwardRef((props, ref) => {
   });
 
   const onTimeChange = (selectedDates) => {
-    setTime(selectedDates[0] || null);
-    props.filterChangedCallback();
+    const newTime = selectedDates[0] || null;
+    if (newTime !== time) {
+      setTime(newTime);
+      props.filterChangedCallback();
+    }
   };
 
   const onFilterTypeChange = (e) => {
-    setFilterType(e.target.value);
-    props.filterChangedCallback();
+    const newType = e.target.value;
+    if (newType !== filterType) {
+      setFilterType(newType);
+      props.filterChangedCallback();
+    }
   };
 
   return (
@@ -343,6 +361,7 @@ const AgGridReact = ({ columnDefs, rowData, onGridReady, gridOptions, ...props }
   const [selectedRows, setSelectedRows] = useState([]);
   const [filters, setFilters] = useState({});
   const [activeFilter, setActiveFilter] = useState(null);
+  const [filterVersion, setFilterVersion] = useState(0);
   
   const handleRowSelect = (rowIndex) => {
     const newSelection = selectedRows.includes(rowIndex) 
@@ -361,19 +380,24 @@ const AgGridReact = ({ columnDefs, rowData, onGridReady, gridOptions, ...props }
     });
   };
 
-  const filteredData = applyFilters(rowData);
+  const filteredData = useMemo(() => applyFilters(rowData), [rowData, filters, filterVersion]);
 
   const handleFilterClick = (field) => {
     setActiveFilter(activeFilter === field ? null : field);
   };
 
   const registerFilter = (field, filterRef) => {
-    if (filterRef) {
-      setFilters(prev => ({
+    setFilters(prev => {
+      if (prev[field] === filterRef) return prev; // Prevent unnecessary updates
+      return {
         ...prev,
         [field]: filterRef
-      }));
-    }
+      };
+    });
+  };
+
+  const onFilterChanged = () => {
+    setFilterVersion(prev => prev + 1);
   };
 
   return (
@@ -408,10 +432,7 @@ const AgGridReact = ({ columnDefs, rowData, onGridReady, gridOptions, ...props }
                   <col.filter
                     ref={(ref) => registerFilter(col.field, ref)}
                     colDef={col}
-                    filterChangedCallback={() => {
-                      // Trigger re-render
-                      setFilters(prev => ({ ...prev }));
-                    }}
+                    filterChangedCallback={onFilterChanged}
                   />
                 </div>
               )}
